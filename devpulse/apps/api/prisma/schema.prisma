@@ -1,0 +1,381 @@
+// DevPulse — Prisma schema v8
+//
+// SCOPE NOTE (read this before adding tables):
+// Slice 1 added User, Organization, Membership. Slice 2 added Repository.
+// Slice 3 added WebhookEvent. Slice 4 added PullRequest. Slice 5 added
+// RiskAssessment. Slice 6 added no tables (UI + routes only). Slice 7
+// added KnowledgeSource, Document, DocumentChunk. Slice 8 added pgvector +
+// embedding columns, no new tables. Slice 9 added no tables (deliberately
+// — analyzePullRequest returned a result without persisting it). Slice 10
+// (this change) adds exactly one table — PRAnalysis — the unified,
+// versioned record that finally persists Slice 9's AI output alongside a
+// reference to the RiskAssessment it was grounded in. Adding this table
+// any earlier would have meant persisting a shape Slice 9 hadn't settled
+// on yet; that's exactly the "layer-by-layer" trap the build plan says to
+// avoid. Resist the urge to add anything else here.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+/// A person who has signed in via GitHub OAuth.
+model User {
+  id            String   @id @default(cuid())
+  githubId      String   @unique
+  githubLogin   String
+  displayName   String?
+  avatarUrl     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  memberships   Membership[]
+
+  @@index([githubLogin])
+}
+
+/// A tenant boundary. Every piece of data belongs to exactly one
+/// Organization; every authorization check resolves through Membership.
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships      Membership[]
+  repositories     Repository[]
+  knowledgeSources KnowledgeSource[]
+}
+
+/// Join table: which users belong to which orgs, and with what role.
+/// Role is intentionally 2-valued (ADMIN | MEMBER) — see SECURITY_TESTING.md
+/// reasoning in the design docs: same authorization concept as a 5-tier
+/// matrix, far less surface to build and test.
+model Membership {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           MembershipRole @default(MEMBER)
+  createdAt      DateTime     @default(now())
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([organizationId])
+}
+
+enum MembershipRole {
+  ADMIN
+  MEMBER
+}
+
+/// A GitHub repository the org has connected via GitHub App installation.
+/// This table only exists to answer "which repos does this org have
+/// connected" for the UI — it deliberately does not yet hold sync status,
+/// PR data, or anything else. That's Slice 3+.
+model Repository {
+  id                    String   @id @default(cuid())
+  organizationId        String
+  githubInstallationId  String
+  githubRepoId          String
+  owner                 String
+  name                  String
+  fullName              String
+  private               Boolean  @default(false)
+  connectedAt           DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  pullRequests     PullRequest[]
+  knowledgeSources KnowledgeSource[]
+
+  // A given GitHub repo can only be connected once per org. (Two different
+  // orgs connecting the same repo independently is a legitimate, separate
+  // case — hence this is scoped to organizationId, not global.)
+  @@unique([organizationId, githubRepoId])
+  @@index([organizationId])
+  @@index([githubInstallationId])
+}
+
+/// One row per GitHub webhook delivery. This is the entire scope of
+/// Slice 3: reliably receive, verify, and dedupe events — not process them.
+/// `payload` keeps the raw event JSON on purpose (see github-webhook docs):
+/// if a future parser has a bug, you replay the stored payload instead of
+/// hoping GitHub resends it.
+model WebhookEvent {
+  id                   String             @id @default(cuid())
+  deliveryId           String             @unique
+  eventType            String
+  action               String?
+  githubRepoId         String?
+  githubInstallationId String?
+  payload              Json
+  status               WebhookEventStatus @default(RECEIVED)
+  receivedAt           DateTime           @default(now())
+  processedAt          DateTime?
+
+  @@index([githubRepoId])
+  @@index([githubInstallationId])
+  @@index([receivedAt])
+}
+
+/// RECEIVED: stored, not yet acted on (Slice 4+ picks these up).
+/// PROCESSED: a later slice's worker successfully handled it.
+/// FAILED: a later slice's worker tried and errored.
+/// IGNORED: an event/action type Slice 3 doesn't act on yet (e.g. a
+///   pull_request "labeled" action, or an event type outside the initial
+///   pull_request-only scope) — still stored for the audit trail, just
+///   never queued for processing.
+enum WebhookEventStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+  IGNORED
+}
+
+/// The current, authoritative state of one GitHub pull request, as last
+/// fetched from GitHub's API (never trusted from a webhook payload alone —
+/// see pull-request-processor.service.ts for why). Scope is deliberately
+/// narrow: identify and reconstruct the PR's current state, nothing about
+/// its files or reviews yet — that's PullRequestFile / PullRequestReview in
+/// a later slice.
+model PullRequest {
+  id           String    @id @default(cuid())
+  repositoryId String
+  // GitHub's global PR id (the API's `id` field) — stable even if the PR
+  // were somehow renumbered, unlike `number` which only makes sense
+  // relative to a specific repo.
+  githubPrId   String
+  number       Int
+  title        String
+  body         String?
+  // Raw GitHub state ("open" | "closed"); merged-vs-closed-unmerged is
+  // distinguished by whether mergedAt is set, matching GitHub's own model.
+  state        String
+  author       String
+  baseBranch   String
+  headBranch   String
+  headSha      String
+  baseSha      String
+  url          String
+  // GitHub's own timestamps for the PR itself.
+  createdAt    DateTime
+  updatedAt    DateTime
+  closedAt     DateTime?
+  mergedAt     DateTime?
+  // GitHub's own diff-size counters, straight from the same PR-fetch
+  // response Slice 4 already makes — the Slice 5 risk engine's "diff size"
+  // and "file count" signals are computed from these, not recomputed by
+  // walking individual files.
+  additions         Int @default(0)
+  deletions         Int @default(0)
+  changedFilesCount Int @default(0)
+  // DevPulse's own bookkeeping: when *we* last wrote this row. Distinct
+  // from `updatedAt` above (GitHub's timestamp) on purpose — don't conflate
+  // "when GitHub says this changed" with "when we last synced it".
+  syncedAt     DateTime  @default(now()) @updatedAt
+
+  repository       Repository       @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  riskAssessments  RiskAssessment[]
+  prAnalyses       PRAnalysis[]
+
+  // A PR is identified per-repo by GitHub's PR id, not assumed globally
+  // unique on its own — see doc comment on githubPrId.
+  @@unique([repositoryId, githubPrId])
+  @@index([repositoryId])
+  @@index([repositoryId, number])
+}
+
+/// One deterministic risk scoring run for one PullRequest. Deliberately not
+/// a 1:1 "current risk" column on PullRequest — a PR can (and will) be
+/// reassessed as it changes, and keeping every run lets you answer "why
+/// did this score change" later instead of only ever seeing the latest
+/// number. `rulesTriggered` stores the full per-rule breakdown (score,
+/// explanation, evidence) so the UI (Slice 6) and any future AI layer
+/// (Slice 9+) can show *why*, not just the number.
+model RiskAssessment {
+  id             String    @id @default(cuid())
+  pullRequestId  String
+  score          Int
+  level          RiskLevel
+  rulesTriggered Json
+  // The scoring logic (thresholds, rules) will change over time — this is
+  // what lets you answer "why did PR #42 score 72 last week and 63 today"
+  // (engine changed) instead of assuming something's broken.
+  engineVersion  String
+  createdAt      DateTime  @default(now())
+
+  pullRequest PullRequest @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+  prAnalyses  PRAnalysis[]
+
+  @@index([pullRequestId, createdAt])
+}
+
+/// The unified deterministic + AI record — what Slices 5-9 finally become
+/// one product. Deliberately NOT a replacement for RiskAssessment: the
+/// deterministic score/level are duplicated here (denormalized, read
+/// straight off the referenced RiskAssessment at analysis time) precisely
+/// so a UI can render "72/100 HIGH, and here's what the AI adds" without
+/// joining back to RiskAssessment on every read — but riskAssessmentId is
+/// still a real foreign key, so the full rule-by-rule breakdown is always
+/// one relation away, not lost.
+///
+/// Every dimension that can independently change is versioned separately
+/// (riskEngineVersion, promptVersion, embeddingModel, retrievalVersion,
+/// llmModel) — see the design doc's own reasoning: if this PR's stored
+/// analysis looks different from a re-run next month, the versions on the
+/// row tell you *which* piece changed, rather than leaving you to guess.
+model PRAnalysis {
+  id               String   @id @default(cuid())
+  pullRequestId    String
+  riskAssessmentId String
+
+  // Denormalized from the referenced RiskAssessment at the moment this
+  // analysis was created — see the model doc comment above.
+  deterministicScore Int
+  riskLevel           RiskLevel
+
+  // The Slice 9 LLM output, already schema-validated by rag/response-parser.ts
+  // before this row is ever written — this table trusts that validation
+  // rather than re-validating.
+  summary         String
+  findings        Json // RiskExplanationItem[]
+  recommendations Json // RecommendationItem[] — each with its own `source` citation
+  confidence      ConfidenceLevel
+
+  riskEngineVersion String
+  promptVersion     String
+  // Nullable: a "skipped_low_risk" analysis (see rag/pr-intelligence.service.ts)
+  // never calls the embedding or LLM APIs at all, so there's no model to
+  // record — but skipped analyses aren't persisted as PRAnalysis rows in
+  // the first place, so in practice this is always set. Nullable anyway
+  // because "no embedding model was used" is a real, meaningful state to
+  // be able to represent, not just an oversight.
+  embeddingModel    String?
+  retrievalVersion  String
+  llmModel          String
+
+  createdAt DateTime @default(now())
+
+  pullRequest    PullRequest    @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
+  riskAssessment RiskAssessment @relation(fields: [riskAssessmentId], references: [id], onDelete: Cascade)
+
+  @@index([pullRequestId, createdAt])
+}
+
+/// Categorical, not a fake-precise float — see rag/pr-analysis.types.ts.
+enum ConfidenceLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// Product thresholds, not scientific fact — see risk-rules.config.ts for
+/// the score cutoffs that map to each level, documented as a deliberate
+/// choice rather than a derived truth.
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+/// Where a batch of engineering-memory documents comes from. Slice 7 only
+/// ever creates one kind ("repository_docs" — a connected repo's own
+/// README + docs/**/*.md), but this exists as its own row (rather than,
+/// say, a string column on Document) so a later source type — ADRs from a
+/// separate system, Confluence, Notion — has somewhere to attach without
+/// reshaping Document itself.
+model KnowledgeSource {
+  id             String   @id @default(cuid())
+  organizationId String
+  repositoryId   String?
+  sourceType     String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  repository   Repository?  @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+  documents    Document[]
+
+  // One source per (org, repo, type) — re-ingesting the same repo's docs
+  // updates the same source rather than creating a duplicate.
+  @@unique([organizationId, repositoryId, sourceType])
+  @@index([organizationId])
+}
+
+/// One file from a KnowledgeSource — currently always a Markdown file from
+/// a connected repo. `contentHash` is what makes re-ingestion cheap: if a
+/// file's content hasn't changed, its hash matches and the ingestion
+/// pipeline skips re-chunking it entirely rather than doing the work again
+/// on every run.
+model Document {
+  id                String   @id @default(cuid())
+  knowledgeSourceId String
+  path              String
+  // Derived from the document's first H1, if it has one — not from GitHub
+  // metadata, since a plain file fetch (not the repo API) is all Slice 7
+  // does.
+  title             String?
+  content           String
+  contentHash       String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  knowledgeSource KnowledgeSource @relation(fields: [knowledgeSourceId], references: [id], onDelete: Cascade)
+  chunks          DocumentChunk[]
+
+  // A path can only appear once per source — re-ingesting the same file
+  // updates this row rather than creating a duplicate.
+  @@unique([knowledgeSourceId, path])
+  @@index([knowledgeSourceId])
+}
+
+/// One chunk of a Document, in original order. No embedding column here on
+/// purpose — turning these into vectors is Slice 8's entire job, and
+/// putting an unused nullable `embedding` column here now would be
+/// exactly the "scaffold it because we'll need it later" trap the build
+/// plan exists to avoid.
+model DocumentChunk {
+  id         String   @id @default(cuid())
+  documentId String
+  chunkIndex Int
+  content    String
+  // A rough length-based estimate (see markdown-chunker.ts), not a real
+  // tokenizer count — good enough to reason about chunk size until Slice 8
+  // actually needs a real count for a specific embedding model's limits.
+  tokenCount Int
+  // { heading: string | null } today — a small, typed envelope (see
+  // knowledge.types.ts) rather than an untyped bag, even though it's only
+  // one field right now.
+  metadata   Json
+  createdAt  DateTime @default(now())
+
+  // Slice 8: nullable because ingestion (Slice 7) and embedding (Slice 8)
+  // are deliberately separate steps — a freshly-chunked document has no
+  // embedding until something calls the embedding pipeline. `Unsupported`
+  // because Prisma Client has no native type for pgvector's `vector`
+  // column; every read/write of this column goes through raw SQL (see
+  // embeddings/embedding.repository.ts) rather than the generated client.
+  // Declared without a fixed dimension so switching embedding models
+  // (different output size) doesn't require a schema migration — the
+  // embeddingDimensions column is the source of truth for what's actually
+  // stored per row.
+  embedding           Unsupported("vector")?
+  embeddingModel      String?
+  embeddingDimensions Int?
+  embeddedAt          DateTime?
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([documentId])
+}
