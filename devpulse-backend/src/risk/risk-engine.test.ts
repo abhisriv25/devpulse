@@ -110,7 +110,7 @@ describe("DEPENDENCY_CHANGE rule", () => {
   });
 
   it("triggers on a lockfile nested in a subdirectory", () => {
-    const signal = signalFor(baseInput({ changedFiles: ["apps/api/package-lock.json"] }), "DEPENDENCY_CHANGE");
+    const signal = signalFor(baseInput({ changedFiles: ["devpulse-backend/package-lock.json"] }), "DEPENDENCY_CHANGE");
     expect(signal.triggered).toBe(true);
   });
 

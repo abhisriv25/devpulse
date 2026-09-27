@@ -66,7 +66,7 @@ exists to avoid.
 ## What Slice 1 demonstrates
 
 - Real GitHub OAuth (not a mocked login) — authorize → callback → token exchange → profile fetch
-- CSRF protection on the OAuth callback via signed session state (tested — see `apps/api/src/auth/auth.routes.test.ts`)
+- CSRF protection on the OAuth callback via signed session state (tested — see `devpulse-backend/src/auth/auth.routes.test.ts`)
 - Redis-backed sessions (HttpOnly, Secure-in-prod, SameSite=Lax cookie)
 - First-login bootstrapping: a personal Organization + ADMIN Membership created automatically, since every later feature is org-scoped
 - A validated, fail-fast environment config (missing env vars crash on boot with a clear message, not a mysterious runtime error later)
@@ -81,7 +81,7 @@ exists to avoid.
 - The install flow follows the same CSRF pattern as OAuth login: a random state token is
   generated, stashed in the session, and checked on the way back — plus the organization
   the install is *for* is pinned server-side too, so the setup callback can't be tricked
-  into attaching repos to the wrong org (tested — see `apps/api/src/github/github.routes.test.ts`).
+  into attaching repos to the wrong org (tested — see `devpulse-backend/src/github/github.routes.test.ts`).
 - After install, DevPulse asks GitHub which repos the installation actually has access to
   (never trusting a client-supplied repo list) and upserts them into `Repository`, scoped
   to the org.
@@ -445,8 +445,8 @@ npm install
 docker compose up -d
 
 # 3. Configure environment
-cp .env.example apps/api/.env
-# edit apps/api/.env: fill in GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_CLIENT_SECRET,
+cp .env.example devpulse-backend/.env
+# edit devpulse-backend/.env: fill in GITHUB_OAUTH_CLIENT_ID, GITHUB_OAUTH_CLIENT_SECRET,
 # GITHUB_APP_SLUG, GITHUB_APP_ID, GITHUB_APP_PRIVATE_KEY, GITHUB_WEBHOOK_SECRET,
 # EMBEDDING_API_KEY, LLM_API_KEY (OpenAI API keys, or a compatible provider's
 # — see .env.example) (see comments in .env.example for exactly how to
@@ -457,7 +457,7 @@ cp .env.example apps/api/.env
 # before the PRAnalysis table was added, run
 # `npx prisma migrate dev --name add_pr_analysis` instead of `--name init`.)
 npm run db:generate
-npx prisma migrate dev --name init --schema=apps/api/prisma/schema.prisma
+npx prisma migrate dev --name init --schema=devpulse-backend/prisma/schema.prisma
 
 # 5. Run both apps (separate terminals)
 npm run dev:api   # http://localhost:3000
@@ -487,9 +487,9 @@ files) and then the full score breakdown; revisiting the same PR is instant sinc
 the assessment is now persisted.
 
 Slice 7's document ingestion isn't wired to anything yet (see "What Slice 7 adds"), so
-to actually ingest a repo's docs, call it directly — e.g. from a Node REPL in `apps/api`:
+to actually ingest a repo's docs, call it directly — e.g. from a Node REPL in `devpulse-backend`:
 ```bash
-cd apps/api
+cd devpulse-backend
 npx tsx
 > const { ingestRepositoryDocs } = await import("./src/knowledge/document-ingestion.service.ts")
 > const { prisma } = await import("./src/db/client.ts")
@@ -503,7 +503,7 @@ Then inspect the result with `npx prisma studio` — look at `KnowledgeSource`, 
 Slice 8's embedding pipeline and retrieval are the same "callable, not wired up" pattern.
 Once you've ingested some docs (above), embed them and try a query:
 ```bash
-cd apps/api
+cd devpulse-backend
 npx tsx
 > const { embedPendingChunks } = await import("./src/embeddings/embedding-pipeline.service.ts")
 > await embedPendingChunks()
@@ -518,7 +518,7 @@ needs to ground an answer in an actual citation.
 With docs ingested and embedded (above), and at least one synced `PullRequest` (from the
 webhook walkthrough further up), try Slice 9's full RAG analysis:
 ```bash
-cd apps/api
+cd devpulse-backend
 npx tsx
 > const { analyzePullRequest } = await import("./src/rag/pr-analysis.service.ts")
 > const { prisma } = await import("./src/db/client.ts")
@@ -540,7 +540,7 @@ reused the persisted row instead of calling the LLM again.
 ## Running the tests
 
 ```bash
-cd apps/api
+cd devpulse-backend
 npm test
 ```
 
@@ -755,8 +755,7 @@ environment.
 ## Project structure
 
 ```
-apps/
-  api/           Express + TypeScript API
+devpulse-backend/   Express + TypeScript API
     src/
       auth/          GitHub OAuth flow, session-backed /me
       github/        GitHub App install flow, installation→repo sync, /repositories,
@@ -788,7 +787,7 @@ apps/
       schema.prisma   v8: User, Organization, Membership, Repository, WebhookEvent,
                        PullRequest, RiskAssessment, KnowledgeSource, Document, DocumentChunk,
                        PRAnalysis (+ pgvector extension, embedding columns on DocumentChunk)
-  web/           React + TypeScript + Vite + TanStack Query
+devpulse-frontend/  React + TypeScript + Vite + TanStack Query
     src/
       pages/       LoginPage, DashboardPage, RepositoriesPage, PullRequestsPage,
                    PullRequestDetailPage (risk breakdown + AI context sections)
