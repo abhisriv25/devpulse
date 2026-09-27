@@ -1,0 +1,38 @@
+# Runs on the EC2 host. deploy.sh writes .env (from SSM) and sets
+# API_IMAGE and API_DOMAIN before calling `docker compose up`.
+services:
+  api:
+    image: ${API_IMAGE}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # Sessions carry a TTL, so volatile-lru evicts expired-soonest keys
+    # first if the cap is ever hit. appendonly keeps logins across restarts.
+    command: redis-server --appendonly yes --maxmemory 100mb --maxmemory-policy volatile-lru
+    volumes:
+      - redis_data:/data
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - api
+
+volumes:
+  redis_data:
+  caddy_data:
