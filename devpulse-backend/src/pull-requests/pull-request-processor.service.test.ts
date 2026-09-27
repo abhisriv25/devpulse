@@ -24,6 +24,11 @@ vi.mock("../github/repository.service.js", () => ({
 const upsertPullRequestMock = vi.fn();
 vi.mock("./pull-request.repository.js", () => ({ upsertPullRequest: upsertPullRequestMock }));
 
+const getOrCreateLatestRiskAssessmentMock = vi.fn();
+vi.mock("../risk/risk-assessment.service.js", () => ({
+  getOrCreateLatestRiskAssessment: getOrCreateLatestRiskAssessmentMock,
+}));
+
 const { processWebhookEvent, processPendingWebhookEvents } = await import(
   "./pull-request-processor.service.js"
 );
@@ -53,6 +58,35 @@ beforeEach(() => {
   githubAppAuthMock.fetchInstallationAccessToken.mockResolvedValue("installation-token");
   fetchPullRequestMock.mockResolvedValue(FETCHED_PR);
   prismaMock.webhookEvent.update.mockResolvedValue({});
+  upsertPullRequestMock.mockResolvedValue({ id: "pr-1" });
+  getOrCreateLatestRiskAssessmentMock.mockResolvedValue({ id: "risk-1" });
+});
+
+describe("processWebhookEvent risk scoring", () => {
+  it("scores the pull request right after saving it", async () => {
+    await processWebhookEvent(makeEvent());
+
+    expect(getOrCreateLatestRiskAssessmentMock).toHaveBeenCalledWith("pr-1");
+  });
+
+  it("still marks the event PROCESSED when scoring fails", async () => {
+    getOrCreateLatestRiskAssessmentMock.mockRejectedValueOnce(new Error("GitHub 502"));
+
+    await expect(processWebhookEvent(makeEvent())).resolves.toBeUndefined();
+
+    expect(prismaMock.webhookEvent.update).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: "PROCESSED" }) }),
+    );
+    expect(prismaMock.webhookEvent.update).toHaveBeenCalledTimes(1);
+  });
+
+  it("doesn't score when the pull request couldn't be fetched", async () => {
+    fetchPullRequestMock.mockRejectedValueOnce(new GithubApiNotFoundError("gone"));
+
+    await processWebhookEvent(makeEvent());
+
+    expect(getOrCreateLatestRiskAssessmentMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("processWebhookEvent", () => {

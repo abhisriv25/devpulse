@@ -4,6 +4,7 @@ import { GithubApiNotFoundError, fetchPullRequest } from "../github/pull-request
 import { findRepositoryByGithubIds } from "../github/repository.service.js";
 import { logger } from "../logger.js";
 import { prisma } from "../prisma.js";
+import { getOrCreateLatestRiskAssessment } from "../risk/risk-assessment.service.js";
 import { upsertPullRequest } from "./pull-request.repository.js";
 
 interface PullRequestWebhookPayload {
@@ -50,8 +51,9 @@ export async function processWebhookEvent(event: WebhookEvent): Promise<void> {
   try {
     const accessToken = await fetchInstallationAccessToken(event.githubInstallationId);
     const pr = await fetchPullRequest(accessToken, repository.owner, repository.name, prNumber);
-    await upsertPullRequest(repository.id, pr);
+    const saved = await upsertPullRequest(repository.id, pr);
     await markEvent(event.id, "PROCESSED");
+    await scoreBestEffort(saved.id, event.id);
   } catch (err) {
     if (err instanceof GithubApiNotFoundError) {
       await markEvent(event.id, "FAILED");
@@ -62,6 +64,17 @@ export async function processWebhookEvent(event: WebhookEvent): Promise<void> {
     // untouched at RECEIVED so the next poll pass retries it, rather than
     // giving up on something that might just work next time.
     logger.error({ err, webhookEventId: event.id }, "Transient failure processing webhook event");
+  }
+}
+
+/** Scores the PR right away so the dashboard can rank it without anyone
+ * opening it first. A failure here doesn't un-process the event — the PR
+ * page scores on demand as a fallback. */
+async function scoreBestEffort(pullRequestId: string, webhookEventId: string) {
+  try {
+    await getOrCreateLatestRiskAssessment(pullRequestId);
+  } catch (err) {
+    logger.warn({ err, webhookEventId, pullRequestId }, "Couldn't score pull request after webhook");
   }
 }
 

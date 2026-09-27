@@ -40,3 +40,23 @@ export async function assessPullRequest(pullRequestId: string) {
 
   return createRiskAssessment(pullRequestId, score, level, signals, RISK_ENGINE_VERSION);
 }
+
+/** Serves the PR's most recent assessment when it's still current — same
+ * engine version and taken after the PR last changed — and only re-scores
+ * (a GitHub round-trip) when it isn't. */
+export async function getOrCreateLatestRiskAssessment(pullRequestId: string) {
+  const pullRequest = await prisma.pullRequest.findUnique({ where: { id: pullRequestId } });
+  if (!pullRequest) {
+    throw new PullRequestNotFoundError(`Pull request ${pullRequestId} not found`);
+  }
+
+  const latest = await prisma.riskAssessment.findFirst({
+    where: { pullRequestId, engineVersion: RISK_ENGINE_VERSION },
+    orderBy: { createdAt: "desc" },
+  });
+  if (latest && latest.createdAt >= pullRequest.updatedAt) {
+    return latest;
+  }
+
+  return assessPullRequest(pullRequestId);
+}

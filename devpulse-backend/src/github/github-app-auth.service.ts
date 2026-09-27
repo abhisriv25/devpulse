@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { env } from "../env.js";
+import { redis } from "../redis.js";
 
 export class GithubAppError extends Error {}
 
@@ -22,7 +23,21 @@ function buildAppJwt(): string {
   );
 }
 
+// Installation tokens are valid for an hour; reuse one until 5 minutes
+// before it expires so a caller never gets a token that dies mid-request.
+const TOKEN_EXPIRY_MARGIN_SECONDS = 5 * 60;
+
+function installationTokenCacheKey(installationId: string): string {
+  return `devpulse:gh-installation-token:${installationId}`;
+}
+
+/** Returns a cached installation token when Redis has one, otherwise mints
+ * a fresh one from GitHub and caches it. */
 export async function fetchInstallationAccessToken(installationId: string): Promise<string> {
+  const cacheKey = installationTokenCacheKey(installationId);
+  const cached = await redis?.get(cacheKey);
+  if (cached) return cached;
+
   const res = await fetch(
     `https://api.github.com/app/installations/${installationId}/access_tokens`,
     {
@@ -39,9 +54,15 @@ export async function fetchInstallationAccessToken(installationId: string): Prom
     throw new GithubAppError(`Failed to create installation access token (status ${res.status})`);
   }
 
-  const body = (await res.json()) as { token?: string };
+  const body = (await res.json()) as { token?: string; expires_at?: string };
   if (!body.token) {
     throw new GithubAppError("Installation access token response had no token");
+  }
+
+  if (redis && body.expires_at) {
+    const ttlSeconds =
+      Math.floor((Date.parse(body.expires_at) - Date.now()) / 1000) - TOKEN_EXPIRY_MARGIN_SECONDS;
+    if (ttlSeconds > 0) await redis.set(cacheKey, body.token, "EX", ttlSeconds);
   }
 
   return body.token;

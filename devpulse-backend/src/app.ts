@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import RedisStore from "connect-redis";
 import cors from "cors";
 import express, { type NextFunction, type Request, type Response } from "express";
 import session from "express-session";
@@ -10,9 +11,16 @@ import { env, isProduction } from "./env.js";
 import { githubRouter } from "./github/github.routes.js";
 import { healthRouter } from "./health/health.routes.js";
 import { logger } from "./logger.js";
+import { pullRequestRouter } from "./pull-requests/pull-request.routes.js";
+import { redis } from "./redis.js";
 import { webhookRouter } from "./webhooks/webhook.routes.js";
 
 export const app = express();
+
+// In production the API sits behind a TLS-terminating proxy (Caddy, and
+// Vercel's /api rewrite in front of that); trust it so req.secure is true
+// and the secure session cookie actually gets set.
+if (isProduction) app.set("trust proxy", true);
 
 app.use(helmet());
 app.use(cors({ origin: env.WEB_BASE_URL, credentials: true }));
@@ -33,12 +41,12 @@ app.use(
   }),
 );
 
-// No Redis available in this environment, so sessions use express-session's
-// default in-process MemoryStore — fine for a single local dev process, but
-// sessions won't survive a server restart and this must not be used as-is
-// in production (see connect-redis in package.json for the intended store).
+// Sessions live in Redis when REDIS_URL is set, so logins survive restarts
+// and deploys. Without it (tests, bare local dev) express-session falls back
+// to its in-process MemoryStore, which must not be used in production.
 app.use(
   session({
+    store: redis ? new RedisStore({ client: redis, prefix: "devpulse:sess:" }) : undefined,
     name: "devpulse.sid",
     secret: env.SESSION_SECRET,
     resave: false,
@@ -55,6 +63,7 @@ app.use(
 app.use(healthRouter);
 app.use(authRouter);
 app.use(githubRouter);
+app.use(pullRequestRouter);
 app.use(webhookRouter);
 
 app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
