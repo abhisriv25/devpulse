@@ -1,123 +1,273 @@
-import { Link, useParams } from "react-router-dom";
-import { AppHeader } from "../components/AppHeader";
-import { PageShell } from "../components/PageShell";
-import { RiskBadge } from "../components/RiskBadge";
-import { EmptyState, ErrorState, RowSkeleton } from "../components/StatusStates";
+import { useEffect, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
+import { AppLayout } from "../components/AppLayout";
+import { ChevronDownIcon, PullRequestIcon, RefreshIcon, SearchIcon } from "../components/icons";
+import { PullRequestRow, PullRequestRowSkeleton } from "../components/PullRequestRow";
+import { RISK_LEVELS, RISK_META } from "../components/risk";
+import { Button, Card, EmptyState, ErrorState, Kbd, PageHeader, cx } from "../components/ui";
+import type { PullRequestListItem, RiskLevel } from "../lib/api";
+import { plural } from "../lib/format";
 import { usePullRequests } from "../lib/use-pull-requests";
+import { useRepositories } from "../lib/use-repositories";
+
+type StatusFilter = "open" | "merged" | "closed" | "all";
+type SortKey = "risk" | "updated";
+
+const STATUS_TABS: { key: StatusFilter; label: string }[] = [
+  { key: "open", label: "Open" },
+  { key: "merged", label: "Merged" },
+  { key: "closed", label: "Closed" },
+  { key: "all", label: "All" },
+];
+
+function statusOf(pr: PullRequestListItem): Exclude<StatusFilter, "all"> {
+  if (pr.mergedAt) return "merged";
+  return pr.state === "closed" ? "closed" : "open";
+}
 
 export function PullRequestsPage() {
-  const { repoId } = useParams<{ repoId: string }>();
-  const { data, isLoading, isError, refetch, isFetching } = usePullRequests({ repositoryId: repoId });
+  const [params, setParams] = useSearchParams();
+  const repoId = params.get("repo") ?? "";
+  const status = (params.get("status") as StatusFilter) || "open";
+  const riskParam = params.get("risk") ?? "";
+  const query = params.get("q") ?? "";
+  const sort = (params.get("sort") as SortKey) || "risk";
 
-  const pullRequests = data?.pullRequests ?? [];
-  const repoName = pullRequests[0]?.repository.fullName;
-  const openCount = pullRequests.filter((pr) => pr.state === "open").length;
+  const selectedLevels = useMemo<RiskLevel[]>(() => {
+    if (riskParam === "attention") return ["CRITICAL", "HIGH"];
+    return riskParam.split(",").filter((l): l is RiskLevel => (RISK_LEVELS as string[]).includes(l));
+  }, [riskParam]);
+
+  const prs = usePullRequests();
+  const repos = useRepositories();
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (e.key === "/" && !["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName)) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  function update(changes: Record<string, string | null>) {
+    const next = new URLSearchParams(params);
+    for (const [key, value] of Object.entries(changes)) {
+      if (value) next.set(key, value);
+      else next.delete(key);
+    }
+    setParams(next, { replace: true });
+  }
+
+  function toggleLevel(level: RiskLevel) {
+    const set = new Set(selectedLevels);
+    if (set.has(level)) set.delete(level);
+    else set.add(level);
+    update({ risk: RISK_LEVELS.filter((l) => set.has(l)).join(",") || null });
+  }
+
+  const all = prs.data?.pullRequests ?? [];
+  const inRepo = repoId ? all.filter((pr) => pr.repository.id === repoId) : all;
+
+  const statusCounts = inRepo.reduce(
+    (acc, pr) => {
+      acc[statusOf(pr)] += 1;
+      acc.all += 1;
+      return acc;
+    },
+    { open: 0, merged: 0, closed: 0, all: 0 } as Record<StatusFilter, number>,
+  );
+
+  const needle = query.trim().toLowerCase();
+  const filtered = inRepo
+    .filter((pr) => status === "all" || statusOf(pr) === status)
+    .filter((pr) => selectedLevels.length === 0 || (pr.latestRisk && selectedLevels.includes(pr.latestRisk.level)))
+    .filter(
+      (pr) =>
+        !needle ||
+        pr.title.toLowerCase().includes(needle) ||
+        pr.author.toLowerCase().includes(needle) ||
+        pr.repository.fullName.toLowerCase().includes(needle) ||
+        `#${pr.number}`.includes(needle),
+    )
+    .sort((a, b) =>
+      sort === "risk"
+        ? (b.latestRisk?.score ?? -1) - (a.latestRisk?.score ?? -1) || b.updatedAt.localeCompare(a.updatedAt)
+        : b.updatedAt.localeCompare(a.updatedAt),
+    );
+
+  const repoName = repos.data?.repositories.find((r) => r.id === repoId)?.fullName;
+  const hasFilters = Boolean(needle || selectedLevels.length || repoId);
 
   return (
-    <PageShell>
-      <AppHeader />
+    <AppLayout>
+      <PageHeader
+        title="Pull requests"
+        description={repoName ? `In ${repoName}` : "Every tracked pull request across your connected repositories."}
+        inlineActions
+        actions={
+          <Button onClick={() => prs.refetch()} disabled={prs.isFetching} aria-label="Refresh">
+            <RefreshIcon size={14} className={prs.isFetching ? "animate-spin" : ""} />
+            <span className="hidden sm:inline">Refresh</span>
+          </Button>
+        }
+      />
 
-      <main className="relative mx-auto max-w-5xl px-6 py-10">
-        <div className="animate-fade-in-up">
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <h1 className="text-2xl font-semibold text-white">
-              Pull requests
-              {repoName && <span className="font-normal text-slate-400"> — {repoName}</span>}
-            </h1>
-            {pullRequests.length > 0 && (
-              <p className="text-sm text-slate-500">
-                <span className="font-medium text-slate-300">{openCount}</span> open ·{" "}
-                <span className="font-medium text-slate-300">{pullRequests.length}</span> total
-              </p>
-            )}
+      <Card className="mt-8 animate-fade-in-up [animation-delay:60ms]">
+        {/* Toolbar */}
+        <div className="space-y-3 border-b border-line p-3 sm:p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <label className="relative flex-1">
+              <span className="sr-only">Search pull requests</span>
+              <SearchIcon size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => update({ q: e.target.value || null })}
+                placeholder="Search by title, author, repo or #number"
+                className="h-9 w-full rounded-lg border border-line-strong bg-canvas/60 pl-9 pr-10 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+              />
+              <span className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 sm:block">
+                <Kbd>/</Kbd>
+              </span>
+            </label>
+
+            <div className="flex gap-2">
+              <Select
+                label="Repository"
+                value={repoId}
+                onChange={(v) => update({ repo: v || null })}
+                options={[
+                  { value: "", label: "All repositories" },
+                  ...(repos.data?.repositories ?? []).map((r) => ({ value: r.id, label: r.fullName })),
+                ]}
+              />
+              <Select
+                label="Sort"
+                value={sort}
+                onChange={(v) => update({ sort: v === "risk" ? null : v })}
+                options={[
+                  { value: "risk", label: "Highest risk" },
+                  { value: "updated", label: "Recently updated" },
+                ]}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex gap-1 overflow-x-auto" role="tablist" aria-label="Status">
+              {STATUS_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  role="tab"
+                  aria-selected={status === tab.key}
+                  onClick={() => update({ status: tab.key === "open" ? null : tab.key })}
+                  className={cx(
+                    "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-medium transition-colors",
+                    status === tab.key ? "bg-white/[0.08] text-white" : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200",
+                  )}
+                >
+                  {tab.label}
+                  <span className="tabular rounded-full bg-white/[0.06] px-1.5 text-[10px] text-slate-400">
+                    {statusCounts[tab.key]}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5" aria-label="Filter by risk">
+              {RISK_LEVELS.map((level) => {
+                const active = selectedLevels.includes(level);
+                const meta = RISK_META[level];
+                return (
+                  <button
+                    key={level}
+                    onClick={() => toggleLevel(level)}
+                    aria-pressed={active}
+                    className={cx(
+                      "flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium ring-1 ring-inset transition-all",
+                      active ? cx(meta.bg, meta.text, meta.ring) : "text-slate-400 ring-line-strong hover:text-slate-200",
+                    )}
+                  >
+                    <span className={cx("size-1.5 rounded-full", meta.dot)} />
+                    {meta.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
-        <section className="mt-6 animate-fade-in-up overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40 shadow-lg shadow-black/20 [animation-delay:80ms]">
-          {isLoading ? (
-            <RowSkeleton count={5} />
-          ) : isError ? (
-            <ErrorState
-              description="We couldn't reach the pull requests service. Check that the API is running and try again."
-              onRetry={() => refetch()}
-            />
-          ) : pullRequests.length === 0 ? (
-            <EmptyState
-              title="No pull requests yet"
-              description="Once a PR is opened on this repo, it'll show up here shortly after GitHub's webhook fires and the sync poller picks it up."
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="border-b border-slate-800/80 text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="px-5 py-3 font-medium">Pull request</th>
-                    <th className="px-5 py-3 font-medium">Author</th>
-                    <th className="px-5 py-3 font-medium">Risk</th>
-                    <th className="px-5 py-3 font-medium">Status</th>
-                    <th className="px-5 py-3 font-medium">Updated</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {pullRequests.map((pr, i) => (
-                    <tr
-                      key={pr.id}
-                      className="animate-fade-in transition-colors hover:bg-slate-800/30 motion-reduce:animate-none"
-                      style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-                    >
-                      <td className="max-w-md px-5 py-3.5">
-                        <Link
-                          to={`/pulls/${pr.id}`}
-                          className="block truncate text-slate-200 transition-colors hover:text-emerald-300"
-                        >
-                          <span className="text-slate-500">#{pr.number}</span> {pr.title}
-                        </Link>
-                      </td>
-                      <td className="px-5 py-3.5 text-slate-400">{pr.author}</td>
-                      <td className="px-5 py-3.5">
-                        {pr.latestRisk ? (
-                          <RiskBadge level={pr.latestRisk.level} score={pr.latestRisk.score} />
-                        ) : (
-                          <span className="text-xs text-slate-600">Not assessed</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <StatusPill pr={pr} />
-                      </td>
-                      <td className="px-5 py-3.5 text-slate-500">
-                        {new Date(pr.updatedAt).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* Results */}
+        {prs.isLoading ? (
+          <PullRequestRowSkeleton count={6} />
+        ) : prs.isError ? (
+          <ErrorState description="We couldn't load pull requests. Check your connection and try again." onRetry={() => prs.refetch()} />
+        ) : filtered.length === 0 ? (
+          <EmptyState
+            icon={hasFilters ? <SearchIcon size={18} /> : <PullRequestIcon size={18} />}
+            title={hasFilters ? "No pull requests match" : status === "open" ? "No open pull requests" : `No ${status} pull requests`}
+            description={
+              hasFilters
+                ? "Try a different search, or clear the filters to see everything."
+                : "New pull requests on your connected repos appear here within seconds of being opened."
+            }
+            action={
+              hasFilters && (
+                <Button size="sm" onClick={() => setParams(status === "open" ? {} : { status }, { replace: true })}>
+                  Clear filters
+                </Button>
+              )
+            }
+          />
+        ) : (
+          <>
+            <ul className="divide-y divide-line">
+              {filtered.map((pr, i) => (
+                <PullRequestRow key={pr.id} pr={pr} index={i} showRepo={!repoId} />
+              ))}
+            </ul>
+            <div className="border-t border-line px-5 py-2.5 text-xs text-slate-500">
+              Showing {plural(filtered.length, "pull request")}
+              {filtered.length !== inRepo.length && ` of ${inRepo.length}`}
             </div>
-          )}
-          {isFetching && !isLoading && (
-            <div className="border-t border-slate-800/80 px-5 py-2 text-center text-[11px] text-slate-600">
-              Refreshing…
-            </div>
-          )}
-        </section>
-      </main>
-    </PageShell>
+          </>
+        )}
+      </Card>
+    </AppLayout>
   );
 }
 
-function StatusPill({ pr }: { pr: { mergedAt: string | null; state: string } }) {
-  const label = pr.mergedAt ? "Merged" : pr.state === "closed" ? "Closed" : "Open";
-  const styles =
-    label === "Merged"
-      ? "border-violet-800 bg-violet-950 text-violet-300"
-      : label === "Closed"
-        ? "border-slate-700 bg-slate-800/60 text-slate-400"
-        : "border-emerald-800 bg-emerald-950 text-emerald-300";
+function Select({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+}) {
   return (
-    <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${styles}`}>
-      {label}
-    </span>
+    <label className="relative min-w-0 flex-1 sm:flex-none">
+      <span className="sr-only">{label}</span>
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 w-full appearance-none truncate rounded-lg border border-line-strong bg-canvas/60 pl-3 pr-8 text-sm text-slate-200 focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 sm:w-auto sm:max-w-[14rem]"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value} className="bg-surface-overlay">
+            {o.label}
+          </option>
+        ))}
+      </select>
+      <ChevronDownIcon size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+    </label>
   );
 }

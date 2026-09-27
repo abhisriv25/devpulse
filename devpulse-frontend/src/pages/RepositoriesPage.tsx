@@ -1,8 +1,11 @@
 import { Link, useSearchParams } from "react-router-dom";
-import { AppHeader } from "../components/AppHeader";
-import { PageShell } from "../components/PageShell";
-import { EmptyState, ErrorState, RowSkeleton } from "../components/StatusStates";
-import { githubInstallUrl } from "../lib/api";
+import { AppLayout } from "../components/AppLayout";
+import { AlertIcon, CheckIcon, ChevronRightIcon, LockIcon, PlusIcon, RepoIcon } from "../components/icons";
+import { RISK_META, RiskBadge } from "../components/risk";
+import { Banner, ButtonAnchor, Card, EmptyState, ErrorState, PageHeader } from "../components/ui";
+import { githubInstallUrl, type PullRequestListItem, type Repository } from "../lib/api";
+import { plural, timeAgo } from "../lib/format";
+import { usePullRequests } from "../lib/use-pull-requests";
 import { useRepositories } from "../lib/use-repositories";
 
 const ERROR_MESSAGES: Record<string, string> = {
@@ -13,165 +16,157 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 export function RepositoriesPage() {
   const [searchParams] = useSearchParams();
-  const { data, isLoading, isError, refetch } = useRepositories();
+  const repos = useRepositories();
+  const prs = usePullRequests();
 
   const justConnected = searchParams.get("connected") === "1";
   const errorCode = searchParams.get("error");
   const errorMessage = errorCode ? ERROR_MESSAGES[errorCode] ?? "Something went wrong. Please try again." : null;
 
-  const repositories = data?.repositories ?? [];
+  const repositories = repos.data?.repositories ?? [];
+  const pullRequests = prs.data?.pullRequests ?? [];
 
   return (
-    <PageShell>
-      <AppHeader />
-
-      <main className="relative mx-auto max-w-3xl px-6 py-10">
-        <div className="flex animate-fade-in-up flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-white">Repositories</h1>
-            <p className="mt-1.5 text-sm text-slate-400">
-              {repositories.length > 0
-                ? `${repositories.length} connected — DevPulse syncs pull requests as they change.`
-                : "Connect a repo to start scoring its pull requests."}
-            </p>
-          </div>
-          <a
-            href={githubInstallUrl()}
-            className="group relative flex shrink-0 items-center gap-1.5 overflow-hidden rounded-md bg-slate-100 px-4 py-2 text-sm font-medium text-slate-900 shadow-lg shadow-black/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-white hover:shadow-emerald-500/20 hover:shadow-xl active:translate-y-0 active:scale-[0.98]"
-          >
-            <PlusIcon />
+    <AppLayout>
+      <PageHeader
+        title="Repositories"
+        description={
+          repositories.length > 0
+            ? `${plural(repositories.length, "repository", "repositories")} connected. Pull requests are scored as soon as they're opened.`
+            : "Connect a repository to start scoring its pull requests."
+        }
+        actions={
+          <ButtonAnchor href={githubInstallUrl()} variant="primary">
+            <PlusIcon size={14} />
             Connect repository
-          </a>
+          </ButtonAnchor>
+        }
+      />
+
+      {(justConnected || errorMessage) && (
+        <div className="mt-6">
+          {justConnected && (
+            <Banner tone="success">
+              <CheckIcon size={15} /> Repositories connected.
+            </Banner>
+          )}
+          {errorMessage && (
+            <Banner tone="error">
+              <AlertIcon size={15} /> {errorMessage}
+            </Banner>
+          )}
         </div>
+      )}
 
-        {justConnected && (
-          <p className="mt-5 flex animate-fade-in-up items-center gap-2 rounded-md border border-emerald-900/60 bg-emerald-950/60 px-3 py-2.5 text-sm text-emerald-300">
-            <CheckIcon />
-            Repositories connected.
-          </p>
-        )}
-        {errorMessage && (
-          <p className="mt-5 flex animate-shake items-center gap-2 rounded-md border border-red-900/60 bg-red-950/80 px-3 py-2.5 text-sm text-red-300">
-            <AlertIcon />
-            {errorMessage}
-          </p>
-        )}
-
-        <section className="mt-6 animate-fade-in-up overflow-hidden rounded-xl border border-slate-800 bg-slate-900/40 shadow-lg shadow-black/20 [animation-delay:80ms]">
-          {isLoading ? (
-            <RowSkeleton count={4} />
-          ) : isError ? (
-            <ErrorState
-              description="We couldn't reach the repositories service. Check that the API is running and try again."
-              onRetry={() => refetch()}
-            />
-          ) : repositories.length === 0 ? (
+      <div className="mt-8 animate-fade-in-up [animation-delay:60ms]">
+        {repos.isLoading ? (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="skeleton h-[148px] rounded-xl" />
+            ))}
+          </div>
+        ) : repos.isError ? (
+          <Card>
+            <ErrorState description="We couldn't load your repositories." onRetry={() => repos.refetch()} />
+          </Card>
+        ) : repositories.length === 0 ? (
+          <Card>
             <EmptyState
+              icon={<RepoIcon size={18} />}
               title="Nothing connected yet"
-              description={
-                'Click "Connect repository" to install the DevPulse GitHub App and choose which repos to sync.'
+              description="Install the DevPulse GitHub App and choose which repositories to watch. It only asks for read access."
+              action={
+                <ButtonAnchor href={githubInstallUrl()} variant="primary">
+                  <PlusIcon size={14} /> Connect repository
+                </ButtonAnchor>
               }
             />
-          ) : (
-            <ul className="divide-y divide-slate-800/60">
-              {repositories.map((repo, i) => (
-                <li
-                  key={repo.id}
-                  className="animate-fade-in motion-reduce:animate-none"
-                  style={{ animationDelay: `${Math.min(i, 8) * 40}ms` }}
-                >
-                  <Link
-                    to={`/repositories/${repo.id}/pulls`}
-                    className="flex items-center gap-3 px-5 py-3.5 transition-colors hover:bg-slate-800/30"
-                  >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-                      <RepoIcon />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm text-slate-200">{repo.fullName}</span>
-                    {repo.private && (
-                      <span className="shrink-0 rounded-full border border-slate-700 px-2 py-0.5 text-[11px] text-slate-400">
-                        Private
-                      </span>
-                    )}
-                    <ArrowIcon className="shrink-0 text-slate-600" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
+          </Card>
+        ) : (
+          <ul className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {repositories.map((repo, i) => (
+              <RepoCard key={repo.id} repo={repo} pullRequests={pullRequests} index={i} />
+            ))}
+            <li>
+              <a
+                href={githubInstallUrl()}
+                className="group flex h-full min-h-[148px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong text-sm text-slate-500 transition-colors hover:border-emerald-400/40 hover:bg-emerald-400/[0.03] hover:text-emerald-300"
+              >
+                <span className="flex size-9 items-center justify-center rounded-lg bg-white/[0.04] transition-colors group-hover:bg-emerald-400/10">
+                  <PlusIcon size={16} />
+                </span>
+                Add or remove repositories
+              </a>
+            </li>
+          </ul>
+        )}
+      </div>
+    </AppLayout>
+  );
+}
+
+function RepoCard({ repo, pullRequests, index }: { repo: Repository; pullRequests: PullRequestListItem[]; index: number }) {
+  const repoPrs = pullRequests.filter((pr) => pr.repository.id === repo.id);
+  const open = repoPrs.filter((pr) => pr.state === "open");
+  const attention = open.filter((pr) => pr.latestRisk?.level === "HIGH" || pr.latestRisk?.level === "CRITICAL");
+  const worst = open
+    .filter((pr) => pr.latestRisk)
+    .sort((a, b) => b.latestRisk!.score - a.latestRisk!.score)[0];
+
+  return (
+    <li className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
+      <Link
+        to={`/pulls?repo=${repo.id}`}
+        className="group flex h-full flex-col rounded-xl border border-line bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:bg-surface-raised"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/20">
+              <RepoIcon size={16} />
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-white">{repo.name}</p>
+              <p className="truncate text-xs text-slate-500">{repo.owner}</p>
+            </div>
+          </div>
+          {repo.private && (
+            <span className="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-slate-400 ring-1 ring-inset ring-line-strong">
+              <LockIcon size={10} /> Private
+            </span>
           )}
-        </section>
-      </main>
-    </PageShell>
+        </div>
+
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <Metric label="Open PRs" value={open.length} />
+          <Metric
+            label="Need attention"
+            value={attention.length}
+            className={attention.length > 0 ? RISK_META.HIGH.text : undefined}
+          />
+          <Metric label="Tracked" value={repoPrs.length} />
+        </div>
+
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3.5 text-xs text-slate-500">
+          {worst?.latestRisk ? (
+            <span className="flex min-w-0 items-center gap-2">
+              <span className="shrink-0">Riskiest:</span>
+              <RiskBadge level={worst.latestRisk.level} score={worst.latestRisk.score} size="sm" />
+            </span>
+          ) : (
+            <span>Connected {timeAgo(repo.connectedAt)}</span>
+          )}
+          <ChevronRightIcon size={14} className="shrink-0 text-slate-600 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-400" />
+        </div>
+      </Link>
+    </li>
   );
 }
 
-function RepoIcon() {
+function Metric({ label, value, className }: { label: string; value: number; className?: string }) {
   return (
-    <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true">
-      <path d="M2 2.5A1.5 1.5 0 0 1 3.5 1h7A1.5 1.5 0 0 1 12 2.5v11.086a.5.5 0 0 1-.79.407L8 12.06l-3.21 1.933a.5.5 0 0 1-.79-.407V2.5Zm1.5-.5a.5.5 0 0 0-.5.5v10.396l2.71-1.63a.5.5 0 0 1 .58 0l2.71 1.63V2.5a.5.5 0 0 0-.5-.5h-5Z" />
-      <path d="M13 4a1 1 0 0 1 1 1v9.5a.5.5 0 0 1-.79.407L10.5 13" opacity="0.5" />
-    </svg>
-  );
-}
-
-function PlusIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      width="14"
-      height="14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <path d="M8 3v10M3 8h10" />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      width="14"
-      height="14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M13.5 4.5 6 12 2.5 8.5" />
-    </svg>
-  );
-}
-
-function AlertIcon() {
-  return (
-    <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true">
-      <path d="M8 1a.75.75 0 0 1 .671.415l6.5 13a.75.75 0 0 1-.671 1.085H1.5a.75.75 0 0 1-.671-1.085l6.5-13A.75.75 0 0 1 8 1Zm0 4a.75.75 0 0 0-.75.75v3.5a.75.75 0 0 0 1.5 0v-3.5A.75.75 0 0 0 8 5Zm0 6.5a.875.875 0 1 0 0 1.75.875.875 0 0 0 0-1.75Z" />
-    </svg>
-  );
-}
-
-function ArrowIcon({ className = "" }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      width="14"
-      height="14"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      className={className}
-    >
-      <path d="M6 4l4 4-4 4" />
-    </svg>
+    <div className="mb-4">
+      <p className={`tabular text-xl font-semibold ${className ?? "text-slate-100"}`}>{value}</p>
+      <p className="mt-0.5 text-[11px] text-slate-500">{label}</p>
+    </div>
   );
 }
