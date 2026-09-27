@@ -231,3 +231,47 @@ export const DiffIcon = (p: IconProps) => (
     <rect x="2" y="1.75" width="12" height="12.5" rx="1.5" />
   </StrokeIcon>
 );
+
+export function LinkedInIcon({ size = 16, ...props }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M13.63 1H2.37C1.61 1 1 1.6 1 2.33v11.34C1 14.4 1.61 15 2.37 15h11.26c.76 0 1.37-.6 1.37-1.33V2.33C15 1.6 14.39 1 13.63 1ZM5.15 12.93H3.2V6.24h1.95v6.69ZM4.17 5.33a1.13 1.13 0 1 1 0-2.26 1.13 1.13 0 0 1 0 2.26Zm8.66 7.6h-1.94V9.68c0-.78-.02-1.77-1.08-1.77-1.08 0-1.25.84-1.25 1.71v3.31H6.62V6.24h1.86v.92h.03c.26-.49.9-1.01 1.84-1.01 1.97 0 2.33 1.3 2.33 2.98v3.8Z" />
+    </svg>
+  );
+}
+
+export function XIcon({ size = 16, ...props }: IconProps) {
+  return (
+    <svg viewBox="0 0 16 16" width={size} height={size} fill="currentColor" aria-hidden="true" {...props}>
+      <path d="M12.22 1.5h2.2L9.62 6.99 15.27 14.5h-4.43L7.38 9.96 3.4 14.5H1.2l5.14-5.87L.93 1.5h4.54l3.13 4.15L12.22 1.5Zm-.77 11.68h1.22L4.8 2.75H3.49l7.96 10.43Z" />
+    </svg>
+  );
+}
+
+export const MailIcon = (p: IconProps) => (
+  <StrokeIcon {...p}>
+    <rect x="1.75" y="3.25" width="12.5" height="9.5" rx="1.5" />
+    <path d="m2.25 4 5.75 4.5L13.75 4" />
+  </StrokeIcon>
+);
+
+export const GlobeIcon = (p: IconProps) => (
+  <StrokeIcon {...p}>
+    <circle cx="8" cy="8" r="6.25" />
+    <path d="M1.75 8h12.5M8 1.75c1.7 1.8 2.5 3.9 2.5 6.25S9.7 12.45 8 14.25C6.3 12.45 5.5 10.35 5.5 8S6.3 3.55 8 1.75Z" />
+  </StrokeIcon>
+);
+
+export const EyeOffIcon = (p: IconProps) => (
+  <StrokeIcon {...p}>
+    <path d="M2 2l12 12M6.6 6.6a2 2 0 0 0 2.8 2.8M4.2 4.3C2.9 5.2 2 6.5 1.5 8c1 2.9 3.6 5 6.5 5 1.3 0 2.5-.4 3.6-1.1M7 3.1c.3 0 .7-.1 1-.1 2.9 0 5.5 2.1 6.5 5-.3.8-.7 1.6-1.2 2.2" />
+  </StrokeIcon>
+);
+
+export const ServerIcon = (p: IconProps) => (
+  <StrokeIcon {...p}>
+    <rect x="2" y="2.25" width="12" height="5" rx="1.25" />
+    <rect x="2" y="8.75" width="12" height="5" rx="1.25" />
+    <path d="M4.75 4.75h.01M4.75 11.25h.01" />
+  </StrokeIcon>
+);

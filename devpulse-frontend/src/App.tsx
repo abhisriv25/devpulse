@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useParams } from "react-router-dom";
 import { LoginPage } from "./pages/LoginPage";
+import { AboutPage } from "./pages/AboutPage";
+import { PrivacyPage } from "./pages/PrivacyPage";
+import { TermsPage } from "./pages/TermsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { RepositoriesPage } from "./pages/RepositoriesPage";
 import { PullRequestsPage } from "./pages/PullRequestsPage";
@@ -20,6 +23,9 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
         <Route path="/" element={protect(<DashboardPage />)} />
         <Route path="/pulls" element={protect(<PullRequestsPage />)} />
         <Route path="/pulls/:pullId" element={protect(<PullRequestDetailPage />)} />

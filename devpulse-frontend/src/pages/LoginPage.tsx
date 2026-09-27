@@ -1,5 +1,6 @@
-import { useSearchParams } from "react-router-dom";
-import { AlertIcon, DatabaseIcon, FlaskIcon, GithubIcon, LockIcon, PulseMark, ShieldCheckIcon, SparkleIcon } from "../components/icons";
+import { Link, useSearchParams } from "react-router-dom";
+import { AlertIcon, DatabaseIcon, FlaskIcon, GithubIcon, LockIcon, ShieldCheckIcon, SparkleIcon } from "../components/icons";
+import { PublicLayout } from "../components/PublicLayout";
 import { RiskBadge, ScoreRing } from "../components/risk";
 import { Banner, buttonClasses } from "../components/ui";
 import { githubLoginUrl, type RiskLevel } from "../lib/api";
@@ -21,91 +22,90 @@ export function LoginPage() {
   const oauthFailed = searchParams.get("error") === "oauth_failed";
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-canvas text-slate-100">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="absolute left-[5%] top-[-15%] h-[36rem] w-[36rem] animate-blob-drift rounded-full bg-emerald-500/[0.12] blur-[140px]" />
-        <div className="absolute right-[-8%] top-[35%] h-[30rem] w-[30rem] animate-blob-drift-slow rounded-full bg-indigo-500/[0.12] blur-[130px]" />
-        <div
-          className="absolute inset-0 opacity-[0.05]"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
-            backgroundSize: "56px 56px",
-            maskImage: "radial-gradient(ellipse 70% 60% at 30% 40%, black 30%, transparent 100%)",
-            WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 30% 40%, black 30%, transparent 100%)",
-          }}
-        />
-      </div>
-
-      <div className="relative mx-auto flex min-h-screen max-w-6xl flex-col px-6 sm:px-10">
-        <header className="flex items-center gap-2.5 pt-8">
-          <span className="flex size-8 items-center justify-center rounded-lg border border-emerald-400/25 bg-emerald-400/10 text-emerald-300">
-            <PulseMark size={18} />
+    <PublicLayout backdrop={<LandingBackdrop />}>
+    <main className="mx-auto grid min-h-[calc(100vh-11rem)] max-w-6xl grid-cols-1 items-center gap-14 px-6 py-14 sm:px-10 lg:grid-cols-2 lg:gap-20">
+      <div className="mx-auto w-full max-w-md animate-fade-in-up lg:mx-0">
+        <p className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-white/[0.03] px-3 py-1 text-xs font-medium text-slate-300">
+          <span className="relative flex size-1.5">
+            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex size-1.5 rounded-full bg-emerald-400" />
           </span>
-          <span className="text-[15px] font-semibold tracking-tight text-white">DevPulse</span>
-        </header>
+          Pull request risk, at a glance
+        </p>
 
-        <main className="grid flex-1 grid-cols-1 items-center gap-14 py-12 lg:grid-cols-2 lg:gap-20 lg:py-0">
-          <div className="mx-auto w-full max-w-md animate-fade-in-up lg:mx-0">
-            <p className="inline-flex items-center gap-2 rounded-full border border-line-strong bg-white/[0.03] px-3 py-1 text-xs font-medium text-slate-300">
-              <span className="relative flex size-1.5">
-                <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex size-1.5 rounded-full bg-emerald-400" />
-              </span>
-              Pull request risk, at a glance
-            </p>
+        <h1 className="mt-6 text-4xl font-semibold leading-[1.1] tracking-tight text-white sm:text-5xl">
+          Review what matters.{" "}
+          <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-sky-300 bg-clip-text text-transparent">
+            Skim the rest.
+          </span>
+        </h1>
 
-            <h1 className="mt-6 text-4xl font-semibold leading-[1.1] tracking-tight text-white sm:text-5xl">
-              Review what matters.{" "}
-              <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-sky-300 bg-clip-text text-transparent">
-                Skim the rest.
-              </span>
-            </h1>
+        <p className="mt-5 text-base leading-relaxed text-slate-400">
+          DevPulse scores every pull request against real risk signals — sensitive code, migrations,
+          dependencies, missing tests — so your team spends review time where it counts.
+        </p>
 
-            <p className="mt-5 text-base leading-relaxed text-slate-400">
-              DevPulse scores every pull request against real risk signals — sensitive code, migrations,
-              dependencies, missing tests — so your team spends review time where it counts.
-            </p>
-
-            {oauthFailed && (
-              <div className="mt-6">
-                <Banner tone="error">
-                  <AlertIcon size={15} /> Sign-in didn't complete. Please try again.
-                </Banner>
-              </div>
-            )}
-
-            <a
-              href={githubLoginUrl()}
-              className={buttonClasses("primary", "md", "group mt-8 h-11 w-full px-5 text-[15px] sm:w-auto")}
-            >
-              <GithubIcon size={17} />
-              Continue with GitHub
-              <span className="transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
-            </a>
-
-            <ul className="mt-10 space-y-4">
-              {FEATURES.map(({ icon: Icon, title, text }) => (
-                <li key={title} className="flex gap-3">
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-line bg-white/[0.03] text-slate-300">
-                    <Icon size={15} />
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-slate-200">{title}</p>
-                    <p className="text-[13px] text-slate-500">{text}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+        {oauthFailed && (
+          <div className="mt-6">
+            <Banner tone="error">
+              <AlertIcon size={15} /> Sign-in didn't complete. Please try again.
+            </Banner>
           </div>
+        )}
 
-          <ProductPreview />
-        </main>
+        <a
+          href={githubLoginUrl()}
+          className={buttonClasses("primary", "md", "group mt-8 h-11 w-full px-5 text-[15px] sm:w-auto")}
+        >
+          <GithubIcon size={17} />
+          Continue with GitHub
+          <span className="transition-transform group-hover:translate-x-0.5" aria-hidden="true">→</span>
+        </a>
 
-        <footer className="pb-8 pt-4 text-center text-xs text-slate-600 lg:text-left">
-          DevPulse reads pull request metadata from the repositories you connect. Nothing is shared with third parties.
-        </footer>
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-500">
+          <LockIcon size={12} />
+          Read-only access. See what we store in our{" "}
+          <Link to="/privacy" className="text-slate-300 underline decoration-slate-600 underline-offset-2 hover:text-white">
+            privacy policy
+          </Link>
+        </p>
+
+        <ul className="mt-10 space-y-4">
+          {FEATURES.map(({ icon: Icon, title, text }) => (
+            <li key={title} className="flex gap-3">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-line bg-white/[0.03] text-slate-300">
+                <Icon size={15} />
+              </span>
+              <div>
+                <p className="text-sm font-medium text-slate-200">{title}</p>
+                <p className="text-[13px] text-slate-500">{text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </div>
+
+      <ProductPreview />
+    </main>
+    </PublicLayout>
+  );
+}
+
+function LandingBackdrop() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+      <div className="absolute left-[5%] top-[-15%] h-[36rem] w-[36rem] animate-blob-drift rounded-full bg-emerald-500/[0.12] blur-[140px]" />
+      <div className="absolute right-[-8%] top-[35%] h-[30rem] w-[30rem] animate-blob-drift-slow rounded-full bg-indigo-500/[0.12] blur-[130px]" />
+      <div
+        className="absolute inset-0 opacity-[0.05]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
+          backgroundSize: "56px 56px",
+          maskImage: "radial-gradient(ellipse 70% 60% at 30% 40%, black 30%, transparent 100%)",
+          WebkitMaskImage: "radial-gradient(ellipse 70% 60% at 30% 40%, black 30%, transparent 100%)",
+        }}
+      />
     </div>
   );
 }

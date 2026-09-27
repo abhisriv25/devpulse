@@ -154,6 +154,12 @@ function SidebarContent() {
         ))}
       </nav>
 
+      <div className="flex gap-3 px-5 pb-3 text-[11px] text-slate-600">
+        <Link to="/about" className="hover:text-slate-300">About</Link>
+        <Link to="/privacy" className="hover:text-slate-300">Privacy</Link>
+        <Link to="/terms" className="hover:text-slate-300">Terms</Link>
+      </div>
+
       {user && (
         <div className="border-t border-line p-3">
           <div className="flex items-center gap-2.5 rounded-lg px-1.5 py-1.5">
