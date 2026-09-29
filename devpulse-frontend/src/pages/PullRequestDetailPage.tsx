@@ -78,14 +78,14 @@ export function PullRequestDetailPage() {
       <header className="mt-5 animate-fade-in-up">
         <Link
           to={`/pulls?repo=${data.repository.id}`}
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-300"
+          className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 transition-colors hover:text-slate-700 dark:hover:text-slate-300"
         >
           <RepoIcon size={13} />
-          {owner}/<span className="text-slate-300">{repoName}</span>
+          {owner}/<span className="text-slate-700 dark:text-slate-300">{repoName}</span>
         </Link>
 
         <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <h1 className="text-2xl font-semibold leading-tight tracking-tight text-white sm:text-[28px]">
+          <h1 className="text-2xl font-semibold leading-tight tracking-tight text-slate-900 dark:text-white sm:text-[28px]">
             {data.title} <span className="font-normal text-slate-500">#{data.number}</span>
           </h1>
           <ButtonAnchor href={data.url} target="_blank" rel="noreferrer" className="self-start">
@@ -95,21 +95,21 @@ export function PullRequestDetailPage() {
           </ButtonAnchor>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-400">
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm text-slate-600 dark:text-slate-400">
           <StatusPill state={data.state} mergedAt={data.mergedAt} />
           <span>
-            <span className="font-medium text-slate-200">{data.author}</span> wants to merge
+            <span className="font-medium text-slate-800 dark:text-slate-200">{data.author}</span> wants to merge
           </span>
           <BranchChip name={data.headBranch} />
-          <span className="text-slate-600">→</span>
+          <span className="text-slate-400 dark:text-slate-600">→</span>
           <BranchChip name={data.baseBranch} />
         </div>
       </header>
 
       {/* Diff stats strip */}
-      <div className="mt-6 grid animate-fade-in-up grid-cols-3 divide-x divide-line overflow-hidden rounded-xl border border-line bg-surface [animation-delay:40ms]">
-        <Stat label="Additions" value={<span className="text-emerald-300">+{data.additions}</span>} />
-        <Stat label="Deletions" value={<span className="text-rose-300">−{data.deletions}</span>} />
+      <div className="mt-6 grid animate-fade-in-up grid-cols-3 divide-x divide-slate-100 dark:divide-line overflow-hidden rounded-xl border border-slate-200 dark:border-line bg-white dark:bg-surface [animation-delay:40ms]">
+        <Stat label="Additions" value={<span className="text-emerald-700 dark:text-emerald-300">+{data.additions}</span>} />
+        <Stat label="Deletions" value={<span className="text-rose-600 dark:text-rose-300">−{data.deletions}</span>} />
         <Stat label="Files changed" value={data.changedFilesCount} />
       </div>
 
@@ -125,7 +125,7 @@ export function PullRequestDetailPage() {
           {data.body && (
             <Card>
               <CardHeader title="Description" />
-              <div className="whitespace-pre-wrap break-words px-5 py-4 text-sm leading-relaxed text-slate-300">
+              <div className="whitespace-pre-wrap break-words px-5 py-4 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                 {data.body}
               </div>
             </Card>
@@ -137,9 +137,9 @@ export function PullRequestDetailPage() {
 
           <Card>
             <CardHeader title="Details" />
-            <dl className="divide-y divide-line text-sm">
+            <dl className="divide-y divide-slate-100 dark:divide-line text-sm">
               <DetailRow label="Repository">
-                <Link to={`/pulls?repo=${data.repository.id}`} className="truncate text-slate-200 hover:text-emerald-300">
+                <Link to={`/pulls?repo=${data.repository.id}`} className="truncate text-slate-800 dark:text-slate-200 hover:text-emerald-700 dark:hover:text-emerald-300">
                   {data.repository.fullName}
                 </Link>
               </DetailRow>
@@ -156,7 +156,7 @@ export function PullRequestDetailPage() {
                 </DetailRow>
               )}
               <DetailRow label="Head">
-                <code className="font-mono text-xs text-slate-300">{data.headSha.slice(0, 7)}</code>
+                <code className="font-mono text-xs text-slate-700 dark:text-slate-300">{data.headSha.slice(0, 7)}</code>
               </DetailRow>
               {risk.data && (
                 <DetailRow label="Scored">
@@ -198,7 +198,7 @@ function RiskSection({
             <div className="skeleton mt-4 h-2.5 w-full rounded-full" />
           </div>
         </div>
-        <p className="border-t border-line px-5 py-3 text-xs text-slate-500">
+        <p className="border-t border-slate-200 dark:border-line px-5 py-3 text-xs text-slate-500">
           Fetching changed files from GitHub and scoring them…
         </p>
       </Card>
@@ -230,7 +230,7 @@ function RiskSection({
         <ScoreRing score={risk.score} level={risk.level} />
         <div className="relative w-full min-w-0 flex-1">
           <p className={cx("text-lg font-semibold", meta.text)}>{meta.label} risk</p>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
             {triggered.length === 0
               ? "No risk signals fired — this looks like a routine change."
               : `${plural(triggered.length, "signal")} fired out of ${risk.rulesTriggered.length} checks.`}
@@ -242,7 +242,7 @@ function RiskSection({
       </div>
 
       {triggered.length > 0 && (
-        <ul className="grid grid-cols-1 gap-3 border-t border-line p-4 sm:grid-cols-2 sm:p-5">
+        <ul className="grid grid-cols-1 gap-3 border-t border-slate-200 dark:border-line p-4 sm:grid-cols-2 sm:p-5">
           {triggered.map((signal) => (
             <SignalCard key={signal.code} signal={signal} />
           ))}
@@ -250,15 +250,15 @@ function RiskSection({
       )}
 
       {passed.length > 0 && (
-        <div className="border-t border-line">
+        <div className="border-t border-slate-200 dark:border-line">
           <button
             type="button"
             onClick={() => setShowPassed((v) => !v)}
             aria-expanded={showPassed}
-            className="flex w-full items-center justify-between px-5 py-3 text-xs font-medium text-slate-400 transition-colors hover:text-slate-200"
+            className="flex w-full items-center justify-between px-5 py-3 text-xs font-medium text-slate-600 dark:text-slate-400 transition-colors hover:text-slate-800 dark:hover:text-slate-200"
           >
             <span className="flex items-center gap-2">
-              <CheckIcon size={13} className="text-emerald-400" />
+              <CheckIcon size={13} className="text-emerald-600 dark:text-emerald-400" />
               {plural(passed.length, "check")} passed
             </span>
             <ChevronDownIcon size={14} className={cx("transition-transform", showPassed && "rotate-180")} />
@@ -269,9 +269,9 @@ function RiskSection({
                 const m = signalMeta(signal.code);
                 return (
                   <li key={signal.code} className="flex items-start gap-2.5 text-sm">
-                    <span className="mt-0.5 text-slate-600">{m.icon}</span>
+                    <span className="mt-0.5 text-slate-400 dark:text-slate-600">{m.icon}</span>
                     <div>
-                      <p className="text-slate-300">{m.label}</p>
+                      <p className="text-slate-700 dark:text-slate-300">{m.label}</p>
                       <p className="text-xs text-slate-500">{signal.explanation}</p>
                     </div>
                   </li>
@@ -291,26 +291,26 @@ function SignalCard({ signal }: { signal: RiskSignal }) {
   const visible = expanded ? signal.evidence : signal.evidence.slice(0, 3);
 
   return (
-    <li className="rounded-lg border border-line bg-white/[0.015] p-4">
+    <li className="rounded-lg border border-slate-200 dark:border-line bg-slate-50 dark:bg-white/[0.015] p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-orange-400/10 text-orange-300">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-orange-50 dark:bg-orange-400/10 text-orange-600 dark:text-orange-300">
             {meta.icon}
           </span>
           <div>
-            <p className="text-sm font-medium text-slate-100">{meta.label}</p>
+            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{meta.label}</p>
             {meta.hint && <p className="text-xs text-slate-500">{meta.hint}</p>}
           </div>
         </div>
-        <span className="tabular shrink-0 rounded-md bg-white/[0.05] px-1.5 py-0.5 font-mono text-xs font-medium text-slate-200">
+        <span className="tabular shrink-0 rounded-md bg-slate-100 dark:bg-white/[0.05] px-1.5 py-0.5 font-mono text-xs font-medium text-slate-800 dark:text-slate-200">
           +{signal.points}
         </span>
       </div>
-      <p className="mt-3 text-[13px] leading-relaxed text-slate-400">{signal.explanation}</p>
+      <p className="mt-3 text-[13px] leading-relaxed text-slate-600 dark:text-slate-400">{signal.explanation}</p>
       {signal.evidence.length > 0 && (
         <ul className="mt-3 space-y-1">
           {visible.map((path) => (
-            <li key={path} className="flex min-w-0 items-center gap-1.5 font-mono text-xs text-slate-300">
+            <li key={path} className="flex min-w-0 items-center gap-1.5 font-mono text-xs text-slate-700 dark:text-slate-300">
               <FileIcon size={12} className="shrink-0 text-slate-500" />
               <span className="truncate" title={path}>
                 {path}
@@ -322,7 +322,7 @@ function SignalCard({ signal }: { signal: RiskSignal }) {
               <button
                 type="button"
                 onClick={() => setExpanded((v) => !v)}
-                className="text-xs text-slate-500 hover:text-emerald-300"
+                className="text-xs text-slate-500 hover:text-emerald-700 dark:hover:text-emerald-300"
               >
                 {expanded ? "Show less" : `+${signal.evidence.length - 3} more`}
               </button>
@@ -348,7 +348,7 @@ function ReviewChecklist({ signals }: { signals: RiskSignal[] }) {
           const checked = done.has(s.code);
           return (
             <li key={s.code}>
-              <label className="flex cursor-pointer items-start gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-white/[0.03]">
+              <label className="flex cursor-pointer items-start gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.03]">
                 <input
                   type="checkbox"
                   checked={checked}
@@ -365,12 +365,12 @@ function ReviewChecklist({ signals }: { signals: RiskSignal[] }) {
                 <span
                   className={cx(
                     "mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400/50",
-                    checked ? "border-emerald-400 bg-emerald-400 text-emerald-950" : "border-line-strong",
+                    checked ? "border-emerald-400 bg-emerald-400 text-emerald-950" : "border-slate-300 dark:border-line-strong",
                   )}
                 >
                   {checked && <CheckIcon size={11} strokeWidth={2.5} />}
                 </span>
-                <span className={cx("text-[13px] leading-snug", checked ? "text-slate-500 line-through" : "text-slate-300")}>
+                <span className={cx("text-[13px] leading-snug", checked ? "text-slate-500 line-through" : "text-slate-700 dark:text-slate-300")}>
                   {REVIEW_CHECKS[s.code]}
                 </span>
               </label>
@@ -397,7 +397,7 @@ function AiSection({
     <CardHeader
       title="AI review"
       icon={<SparkleIcon size={15} />}
-      action={<span className="rounded-full bg-indigo-400/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-indigo-300">Beta</span>}
+      action={<span className="rounded-full bg-indigo-50 dark:bg-indigo-400/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-indigo-600 dark:text-indigo-300">Beta</span>}
     />
   );
 
@@ -421,11 +421,11 @@ function AiSection({
         {header}
         {unavailable ? (
           <div className="flex items-start gap-3.5 p-5">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-indigo-400/10 text-indigo-300">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 dark:bg-indigo-400/10 text-indigo-600 dark:text-indigo-300">
               <SparkleIcon size={16} />
             </span>
             <div>
-              <p className="text-sm font-medium text-slate-200">AI review isn't switched on yet</p>
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-200">AI review isn't switched on yet</p>
               <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
                 Once enabled, DevPulse reads your repo's docs and explains <em>why</em> this change is risky, with
                 recommendations grounded in your own conventions. The deterministic score above doesn't depend on it.
@@ -446,11 +446,11 @@ function AiSection({
       <Card>
         {header}
         <div className="flex items-start gap-3.5 p-5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-300">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-300">
             <CheckIcon size={16} />
           </span>
           <div>
-            <p className="text-sm font-medium text-slate-200">Skipped — low risk</p>
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-200">Skipped — low risk</p>
             <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
               Routine changes don't get an AI review, which keeps the signal high and the cost low.
             </p>
@@ -467,14 +467,14 @@ function AiSection({
       <div className="space-y-5 p-5">
         <div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-            <span className="rounded-full px-2 py-0.5 text-slate-300 ring-1 ring-inset ring-line-strong">
+            <span className="rounded-full px-2 py-0.5 text-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-300 dark:ring-line-strong">
               {ai.confidence.toLowerCase()} confidence
             </span>
             <span className="flex items-center gap-1">
               <ClockIcon size={12} /> {timeAgo(ai.createdAt)} · {ai.llmModel}
             </span>
           </div>
-          <p className="mt-3 text-sm leading-relaxed text-slate-200">{ai.summary}</p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-800 dark:text-slate-200">{ai.summary}</p>
         </div>
 
         {ai.findings.length > 0 && (
@@ -482,12 +482,12 @@ function AiSection({
             <h3 className="text-xs font-medium uppercase tracking-wider text-slate-500">Findings</h3>
             <ul className="mt-2.5 space-y-2.5">
               {ai.findings.map((f, i) => (
-                <li key={i} className="rounded-lg border border-line bg-white/[0.015] p-3.5">
+                <li key={i} className="rounded-lg border border-slate-200 dark:border-line bg-slate-50 dark:bg-white/[0.015] p-3.5">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-medium text-slate-100">{f.title}</p>
+                    <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{f.title}</p>
                     <RiskBadge level={f.severity} size="sm" />
                   </div>
-                  <p className="mt-1.5 text-[13px] text-slate-400">{f.reason}</p>
+                  <p className="mt-1.5 text-[13px] text-slate-600 dark:text-slate-400">{f.reason}</p>
                 </li>
               ))}
             </ul>
@@ -502,9 +502,9 @@ function AiSection({
                 <li key={i} className="flex gap-3 text-sm">
                   <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-indigo-400" />
                   <div>
-                    <p className="text-slate-200">{r.action}</p>
+                    <p className="text-slate-800 dark:text-slate-200">{r.action}</p>
                     <p className="mt-0.5 text-[13px] text-slate-500">{r.reason}</p>
-                    {r.source && <p className="mt-1 font-mono text-[11px] text-slate-600">Source: {r.source}</p>}
+                    {r.source && <p className="mt-1 font-mono text-[11px] text-slate-400 dark:text-slate-600">Source: {r.source}</p>}
                   </div>
                 </li>
               ))}
@@ -520,7 +520,7 @@ function BackLink() {
   return (
     <Link
       to="/pulls"
-      className="inline-flex items-center gap-1.5 text-sm text-slate-400 transition-colors hover:text-slate-100"
+      className="inline-flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-400 transition-colors hover:text-slate-900 dark:hover:text-slate-100"
     >
       <ArrowLeftIcon size={14} />
       Pull requests
@@ -530,7 +530,7 @@ function BackLink() {
 
 function BranchChip({ name }: { name: string }) {
   return (
-    <code className="inline-flex max-w-[16rem] items-center gap-1 rounded-md bg-white/[0.05] px-1.5 py-0.5 font-mono text-xs text-slate-300 ring-1 ring-inset ring-line">
+    <code className="inline-flex max-w-[16rem] items-center gap-1 rounded-md bg-slate-100 dark:bg-white/[0.05] px-1.5 py-0.5 font-mono text-xs text-slate-700 dark:text-slate-300 ring-1 ring-inset ring-slate-200 dark:ring-line">
       <BranchIcon size={11} className="shrink-0 text-slate-500" />
       <span className="truncate">{name}</span>
     </code>
@@ -541,7 +541,7 @@ function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div className="px-4 py-3.5 sm:px-5">
       <p className="text-xs text-slate-500">{label}</p>
-      <p className="tabular mt-1 font-mono text-lg font-medium text-white">{value}</p>
+      <p className="tabular mt-1 font-mono text-lg font-medium text-slate-900 dark:text-white">{value}</p>
     </div>
   );
 }
@@ -550,7 +550,7 @@ function DetailRow({ label, children }: { label: string; children: ReactNode }) 
   return (
     <div className="flex items-center justify-between gap-4 px-5 py-2.5">
       <dt className="shrink-0 text-slate-500">{label}</dt>
-      <dd className="min-w-0 truncate text-right text-slate-300">{children}</dd>
+      <dd className="min-w-0 truncate text-right text-slate-700 dark:text-slate-300">{children}</dd>
     </div>
   );
 }

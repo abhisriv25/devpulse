@@ -78,11 +78,11 @@ export function DashboardPage() {
         }
         actions={
           <>
-            <ButtonLink to="/pulls" variant="secondary">
+            <ButtonLink to="/pulls" variant="outline">
               <PullRequestIcon size={14} />
               All pull requests
             </ButtonLink>
-            <ButtonAnchor href={githubInstallUrl()} variant="primary">
+            <ButtonAnchor href={githubInstallUrl()} variant="solid">
               <PlusIcon size={14} />
               Connect repo
             </ButtonAnchor>
@@ -132,7 +132,7 @@ export function DashboardPage() {
             description="Open PRs ranked by risk"
             action={
               openPrs.length > 0 && (
-                <Link to="/pulls" className="flex items-center gap-1 text-xs text-slate-400 transition-colors hover:text-emerald-300">
+                <Link to="/pulls" className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-400 transition-colors hover:text-emerald-700 dark:hover:text-emerald-300">
                   View all <ArrowRightIcon size={12} />
                 </Link>
               )
@@ -145,7 +145,7 @@ export function DashboardPage() {
           ) : topRisk.length === 0 ? (
             <QueueEmpty hasRepos={repositories.length > 0} hasPrs={pullRequests.length > 0} />
           ) : (
-            <ul className="divide-y divide-line">
+            <ul className="divide-y divide-slate-100 dark:divide-line">
               {topRisk.map((pr, i) => (
                 <PullRequestRow key={pr.id} pr={pr} index={i} showStatus={false} />
               ))}
@@ -174,7 +174,7 @@ export function DashboardPage() {
             <CardHeader
               title="Repositories"
               action={
-                <Link to="/repositories" className="text-xs text-slate-400 transition-colors hover:text-emerald-300">
+                <Link to="/repositories" className="text-xs text-slate-600 dark:text-slate-400 transition-colors hover:text-emerald-700 dark:hover:text-emerald-300">
                   Manage
                 </Link>
               }
@@ -192,13 +192,13 @@ export function DashboardPage() {
                 title="No repositories yet"
                 description="Install the GitHub App on a repo to start scoring its PRs."
                 action={
-                  <ButtonAnchor href={githubInstallUrl()} size="sm" variant="primary">
+                  <ButtonAnchor href={githubInstallUrl()} size="sm" variant="solid">
                     <PlusIcon size={13} /> Connect repository
                   </ButtonAnchor>
                 }
               />
             ) : (
-              <ul className="divide-y divide-line">
+              <ul className="divide-y divide-slate-100 dark:divide-line">
                 {repositories.slice(0, 6).map((repo) => (
                   <RepoSummaryRow key={repo.id} repoId={repo.id} fullName={repo.fullName} pullRequests={pullRequests} />
                 ))}
@@ -229,11 +229,11 @@ function StatCard({
   const body = (
     <>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-slate-400">{label}</span>
+        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">{label}</span>
         <span
           className={cx(
             "flex size-7 items-center justify-center rounded-lg",
-            tone === "warn" ? "bg-orange-400/10 text-orange-300" : "bg-white/[0.05] text-slate-400",
+            tone === "warn" ? "bg-orange-50 dark:bg-orange-400/10 text-orange-600 dark:text-orange-300" : "bg-slate-100 dark:bg-white/[0.05] text-slate-600 dark:text-slate-400",
           )}
         >
           {icon}
@@ -242,7 +242,7 @@ function StatCard({
       {value === null ? (
         <div className="skeleton mt-3 h-8 w-12" />
       ) : (
-        <p className={cx("tabular mt-3 text-3xl font-semibold tracking-tight", tone === "warn" ? "text-orange-200" : "text-white")}>
+        <p className={cx("tabular mt-3 text-3xl font-semibold tracking-tight", tone === "warn" ? "text-orange-700 dark:text-orange-200" : "text-slate-900 dark:text-white")}>
           {value}
         </p>
       )}
@@ -251,9 +251,9 @@ function StatCard({
   );
 
   const classes = cx(
-    "block rounded-xl border bg-surface p-4 shadow-card transition-all duration-200",
-    tone === "warn" ? "border-orange-400/20" : "border-line",
-    href && "hover:-translate-y-0.5 hover:border-line-strong hover:bg-surface-raised",
+    "block rounded-xl border bg-white dark:bg-surface p-4 shadow-sm dark:shadow-card transition-all duration-200",
+    tone === "warn" ? "border-orange-200 dark:border-orange-400/20" : "border-slate-200 dark:border-line",
+    href && "hover:-translate-y-0.5 hover:border-slate-300 dark:hover:border-line-strong hover:bg-white dark:hover:bg-surface-raised",
   );
 
   return href ? (
@@ -282,12 +282,12 @@ function RepoSummaryRow({
 
   return (
     <li>
-      <Link to={`/pulls?repo=${repoId}`} className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-white/[0.025]">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-slate-400 ring-1 ring-inset ring-line">
+      <Link to={`/pulls?repo=${repoId}`} className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.025]">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-slate-100 dark:bg-white/[0.04] text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-200 dark:ring-line">
           <RepoIcon size={13} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm text-slate-200 group-hover:text-white">
+          <p className="truncate text-sm text-slate-800 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white">
             <span className="text-slate-500">{owner}/</span>
             {name}
           </p>
@@ -307,7 +307,7 @@ function QueueEmpty({ hasRepos, hasPrs }: { hasRepos: boolean; hasPrs: boolean }
         title="Connect your first repository"
         description="DevPulse installs as a read-only GitHub App. Pick the repos to watch and new pull requests are scored automatically."
         action={
-          <ButtonAnchor href={githubInstallUrl()} variant="primary">
+          <ButtonAnchor href={githubInstallUrl()} variant="solid">
             <PlusIcon size={14} /> Connect repository
           </ButtonAnchor>
         }

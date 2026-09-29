@@ -119,7 +119,7 @@ export function PullRequestsPage() {
 
       <Card className="mt-8 animate-fade-in-up [animation-delay:60ms]">
         {/* Toolbar */}
-        <div className="space-y-3 border-b border-line p-3 sm:p-4">
+        <div className="space-y-3 border-b border-slate-200 dark:border-line p-3 sm:p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <label className="relative flex-1">
               <span className="sr-only">Search pull requests</span>
@@ -129,7 +129,7 @@ export function PullRequestsPage() {
                 value={query}
                 onChange={(e) => update({ q: e.target.value || null })}
                 placeholder="Search by title, author, repo or #number"
-                className="h-9 w-full rounded-lg border border-line-strong bg-canvas/60 pl-9 pr-10 text-sm text-slate-100 placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+                className="h-9 w-full rounded-lg border border-slate-300 dark:border-line-strong bg-white dark:bg-canvas/60 pl-9 pr-10 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-500 focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 dark:focus:ring-emerald-400/20"
               />
               <span className="pointer-events-none absolute right-2.5 top-1/2 hidden -translate-y-1/2 sm:block">
                 <Kbd>/</Kbd>
@@ -168,11 +168,11 @@ export function PullRequestsPage() {
                   onClick={() => update({ status: tab.key === "open" ? null : tab.key })}
                   className={cx(
                     "flex h-8 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-medium transition-colors",
-                    status === tab.key ? "bg-white/[0.08] text-white" : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200",
+                    status === tab.key ? "bg-slate-100 dark:bg-white/[0.08] text-slate-900 dark:text-white" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/[0.04] hover:text-slate-800 dark:hover:text-slate-200",
                   )}
                 >
                   {tab.label}
-                  <span className="tabular rounded-full bg-white/[0.06] px-1.5 text-[10px] text-slate-400">
+                  <span className="tabular rounded-full bg-slate-100 dark:bg-white/[0.06] px-1.5 text-[10px] text-slate-600 dark:text-slate-400">
                     {statusCounts[tab.key]}
                   </span>
                 </button>
@@ -190,7 +190,7 @@ export function PullRequestsPage() {
                     aria-pressed={active}
                     className={cx(
                       "flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium ring-1 ring-inset transition-all",
-                      active ? cx(meta.bg, meta.text, meta.ring) : "text-slate-400 ring-line-strong hover:text-slate-200",
+                      active ? cx(meta.bg, meta.text, meta.ring) : "text-slate-600 dark:text-slate-400 ring-slate-300 dark:ring-line-strong hover:text-slate-800 dark:hover:text-slate-200",
                     )}
                   >
                     <span className={cx("size-1.5 rounded-full", meta.dot)} />
@@ -226,12 +226,12 @@ export function PullRequestsPage() {
           />
         ) : (
           <>
-            <ul className="divide-y divide-line">
+            <ul className="divide-y divide-slate-100 dark:divide-line">
               {filtered.map((pr, i) => (
                 <PullRequestRow key={pr.id} pr={pr} index={i} showRepo={!repoId} />
               ))}
             </ul>
-            <div className="border-t border-line px-5 py-2.5 text-xs text-slate-500">
+            <div className="border-t border-slate-200 dark:border-line px-5 py-2.5 text-xs text-slate-500">
               Showing {plural(filtered.length, "pull request")}
               {filtered.length !== inRepo.length && ` of ${inRepo.length}`}
             </div>
@@ -259,10 +259,10 @@ function Select({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 w-full appearance-none truncate rounded-lg border border-line-strong bg-canvas/60 pl-3 pr-8 text-sm text-slate-200 focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-400/20 sm:w-auto sm:max-w-[14rem]"
+        className="h-9 w-full appearance-none truncate rounded-lg border border-slate-300 dark:border-line-strong bg-white dark:bg-canvas/60 pl-3 pr-8 text-sm text-slate-800 dark:text-slate-200 focus:border-emerald-400/50 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 dark:focus:ring-emerald-400/20 sm:w-auto sm:max-w-[14rem]"
       >
         {options.map((o) => (
-          <option key={o.value} value={o.value} className="bg-surface-overlay">
+          <option key={o.value} value={o.value} className="bg-white dark:bg-surface-overlay">
             {o.label}
           </option>
         ))}

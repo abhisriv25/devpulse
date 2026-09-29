@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { githubLoginUrl } from "../lib/api";
-import { PublicThemeProvider, usePublicTheme } from "../lib/public-theme";
 import { SITE } from "../lib/site";
-import { CloseIcon, GithubIcon, MenuIcon, MoonIcon, PulseMark, SunIcon } from "./icons";
+import { CloseIcon, GithubIcon, MenuIcon, PulseMark } from "./icons";
+import { ICON_BUTTON, ThemeToggle } from "./ThemeToggle";
 import { buttonClasses, cx } from "./ui";
 
 const LINKS = [
@@ -15,33 +15,24 @@ const LINKS = [
 /** Shared width for every public page, so header, sections and footer line up. */
 export const PAGE_CONTAINER = "mx-auto w-full max-w-[88rem] px-5 sm:px-8 lg:px-12";
 
-/** Header + footer shared by the landing page and the public info pages.
- * The public site has a light/dark toggle; the signed-in app is always dark. */
+/** Header + footer shared by the landing page and the public info pages. */
 export function PublicLayout({ children, backdrop }: { children: ReactNode; backdrop?: ReactNode }) {
   return (
-    <PublicThemeProvider>
-      {(theme) => (
-        // Tailwind's dark: variant matches descendants of .dark only, so the
-        // class goes on this wrapper and the themed page styles one level in.
-        <div className={cx(theme === "dark" && "dark")}>
-        {/* overflow-x-clip (not overflow-hidden) so the sticky header still sticks. */}
-        <div className="relative flex min-h-screen flex-col overflow-x-clip bg-white text-slate-900 dark:bg-canvas dark:text-slate-100">
-          <a
-            href="#main"
-            className="sr-only z-50 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
-          >
-            Skip to content
-          </a>
-          {backdrop ?? <SoftBackdrop />}
-          <PublicHeader />
-          <div id="main" className="relative flex-1">
-            {children}
-          </div>
-          <PublicFooter />
-        </div>
-        </div>
-      )}
-    </PublicThemeProvider>
+    // overflow-x-clip (not overflow-hidden) so the sticky header still sticks.
+    <div className="relative flex min-h-screen flex-col overflow-x-clip bg-white text-slate-900 dark:bg-canvas dark:text-slate-100">
+      <a
+        href="#main"
+        className="sr-only z-50 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+      >
+        Skip to content
+      </a>
+      {backdrop ?? <SoftBackdrop />}
+      <PublicHeader />
+      <div id="main" className="relative flex-1">
+        {children}
+      </div>
+      <PublicFooter />
+    </div>
   );
 }
 
@@ -195,27 +186,6 @@ function PublicHeader() {
   );
 }
 
-const ICON_BUTTON =
-  "inline-flex size-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white";
-
-function ThemeToggle() {
-  const { theme, toggle } = usePublicTheme();
-  const next = theme === "light" ? "dark" : "light";
-
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      className={ICON_BUTTON}
-      aria-label={`Switch to ${next} theme`}
-      title={`Switch to ${next} theme`}
-    >
-      <span key={theme} className="animate-fade-in">
-        {theme === "light" ? <MoonIcon size={16} /> : <SunIcon size={16} />}
-      </span>
-    </button>
-  );
-}
 
 /** Which of the given section ids is currently under the header. */
 function useActiveSection(ids: string[]) {

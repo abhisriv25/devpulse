@@ -9,6 +9,7 @@ import { RepositoriesPage } from "./pages/RepositoriesPage";
 import { PullRequestsPage } from "./pages/PullRequestsPage";
 import { PullRequestDetailPage } from "./pages/PullRequestDetailPage";
 import { ProtectedRoute } from "./lib/ProtectedRoute";
+import { ThemeProvider } from "./lib/theme";
 
 const protect = (page: ReactNode) => <ProtectedRoute>{page}</ProtectedRoute>;
 
@@ -20,6 +21,7 @@ function LegacyRepoPullsRedirect() {
 
 export function App() {
   return (
+    <ThemeProvider>
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -34,5 +36,6 @@ export function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
+    </ThemeProvider>
   );
 }

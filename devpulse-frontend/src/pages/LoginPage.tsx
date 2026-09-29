@@ -19,10 +19,9 @@ import {
   ShieldCheckIcon,
 } from "../components/icons";
 import { GridLines, PAGE_CONTAINER, PublicLayout } from "../components/PublicLayout";
-import { RISK_META, RISK_META_LIGHT, RiskBadge, ScoreComposition, ScoreRing } from "../components/risk";
+import { RISK_META, RiskBadge, ScoreComposition, ScoreRing } from "../components/risk";
 import { buttonClasses, cx } from "../components/ui";
 import { githubLoginUrl, type RiskLevel, type RiskSignal } from "../lib/api";
-import { usePublicTheme } from "../lib/public-theme";
 import { SITE } from "../lib/site";
 
 // Every number on this page comes from the backend's risk-rules.config.ts,
@@ -310,7 +309,6 @@ function GithubCta({ className }: { className?: string }) {
 /** A fake-but-faithful app window: review queue plus the selected PR's
  * score. Purely decorative, so it's hidden from assistive tech. */
 function ProductWindow() {
-  const { theme } = usePublicTheme();
 
   return (
     <div className="relative" aria-hidden="true">
@@ -349,7 +347,7 @@ function ProductWindow() {
                       </p>
                     </div>
                   </div>
-                  <RiskBadge level={pr.risk} score={pr.score} size="sm" tone={theme} />
+                  <RiskBadge level={pr.risk} score={pr.score} size="sm" />
                 </li>
               ))}
             </ul>
@@ -358,7 +356,7 @@ function ProductWindow() {
           <div className="hidden border-l border-slate-200 bg-slate-50/60 p-5 sm:block dark:border-white/10 dark:bg-white/[0.02]">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">#482 risk</p>
             <div className="mt-4 flex justify-center">
-              <ScoreRing score={60} level="HIGH" size={112} stroke={9} tone={theme} />
+              <ScoreRing score={60} level="HIGH" size={112} stroke={9} />
             </div>
             <div className="mt-5 space-y-2.5">
               {BREAKDOWN.map((row) => (
@@ -535,7 +533,6 @@ function HowItWorksSection() {
 /* ──────────────────────── Explained score ──────────────────────── */
 
 function ScoreSection() {
-  const { theme } = usePublicTheme();
 
   return (
     <Section id="product">
@@ -567,7 +564,7 @@ function ScoreSection() {
             {LEVELS.map(({ level, range, meaning }) => (
               <div key={level} className={cx(CARD, "p-4")}>
                 <span className={cx("block h-1 w-8 rounded-full", RISK_META[level].dot)} />
-                <p className={cx("mt-3 text-sm font-semibold", theme === "light" ? RISK_META_LIGHT[level].text : RISK_META[level].text)}>
+                <p className={cx("mt-3 text-sm font-semibold", RISK_META[level].text)}>
                   {RISK_META[level].label}
                 </p>
                 <p className="tabular mt-0.5 font-mono text-[11px] text-slate-500">{range}</p>
@@ -583,20 +580,20 @@ function ScoreSection() {
             <div className={WINDOW}>
               <WindowChrome label="acme/api · Pull request #482" />
               <div className="flex items-center gap-5 border-b border-slate-200 p-6 dark:border-white/10">
-                <ScoreRing score={60} level="HIGH" size={108} stroke={9} tone={theme} />
+                <ScoreRing score={60} level="HIGH" size={108} stroke={9} />
                 <div className="min-w-0">
                   <p className="font-mono text-xs text-slate-500">acme/api #482 · priyaverma</p>
                   <p className="mt-1.5 text-lg font-semibold leading-snug text-slate-900 dark:text-white">
                     Rework session refresh to avoid token race
                   </p>
                   <div className="mt-3">
-                    <RiskBadge level="HIGH" tone={theme} />
+                    <RiskBadge level="HIGH" />
                   </div>
                 </div>
               </div>
 
               <div className="border-b border-slate-200 px-6 py-5 dark:border-white/10">
-                <ScoreComposition signals={EXAMPLE_SIGNALS} level="HIGH" tone={theme} />
+                <ScoreComposition signals={EXAMPLE_SIGNALS} level="HIGH" />
               </div>
 
               <ul className="divide-y divide-slate-100 dark:divide-white/[0.06]">

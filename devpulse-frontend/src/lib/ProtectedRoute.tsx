@@ -8,8 +8,8 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas" role="status">
-        <span className="flex size-11 animate-pulse items-center justify-center rounded-xl border border-emerald-400/25 bg-emerald-400/10 text-emerald-300">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 dark:bg-canvas" role="status">
+        <span className="flex size-11 animate-pulse items-center justify-center rounded-xl border border-emerald-600/20 dark:border-emerald-400/25 bg-emerald-50 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-300">
           <PulseMark size={22} />
         </span>
         <span className="sr-only">Checking your session…</span>

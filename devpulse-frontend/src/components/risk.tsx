@@ -9,6 +9,8 @@ export const RISK_LEVELS: RiskLevel[] = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
  * MEDIUM < 50, HIGH < 75, CRITICAL up to 100. */
 export const LEVEL_THRESHOLDS = [25, 50, 75] as const;
 
+/** text/bg/ring carry both themes (light first, then dark:), so callers
+ * never need to know which theme is active. */
 export const RISK_META: Record<
   RiskLevel,
   { label: string; hex: string; text: string; bg: string; ring: string; dot: string; bar: string }
@@ -16,36 +18,36 @@ export const RISK_META: Record<
   LOW: {
     label: "Low",
     hex: "#34d399",
-    text: "text-emerald-300",
-    bg: "bg-emerald-400/10",
-    ring: "ring-emerald-400/25",
+    text: "text-emerald-700 dark:text-emerald-300",
+    bg: "bg-emerald-50 dark:bg-emerald-400/10",
+    ring: "ring-emerald-600/20 dark:ring-emerald-400/25",
     dot: "bg-emerald-400",
     bar: "bg-emerald-400",
   },
   MEDIUM: {
     label: "Medium",
     hex: "#fbbf24",
-    text: "text-amber-300",
-    bg: "bg-amber-400/10",
-    ring: "ring-amber-400/25",
+    text: "text-amber-700 dark:text-amber-300",
+    bg: "bg-amber-50 dark:bg-amber-400/10",
+    ring: "ring-amber-600/25 dark:ring-amber-400/25",
     dot: "bg-amber-400",
     bar: "bg-amber-400",
   },
   HIGH: {
     label: "High",
     hex: "#fb923c",
-    text: "text-orange-300",
-    bg: "bg-orange-400/10",
-    ring: "ring-orange-400/25",
+    text: "text-orange-700 dark:text-orange-300",
+    bg: "bg-orange-50 dark:bg-orange-400/10",
+    ring: "ring-orange-600/20 dark:ring-orange-400/25",
     dot: "bg-orange-400",
     bar: "bg-orange-400",
   },
   CRITICAL: {
     label: "Critical",
     hex: "#fb7185",
-    text: "text-rose-300",
-    bg: "bg-rose-400/10",
-    ring: "ring-rose-400/25",
+    text: "text-rose-700 dark:text-rose-300",
+    bg: "bg-rose-50 dark:bg-rose-400/10",
+    ring: "ring-rose-600/20 dark:ring-rose-400/25",
     dot: "bg-rose-400",
     bar: "bg-rose-400",
   },
@@ -84,16 +86,6 @@ export const SIGNAL_META: Record<string, { label: string; icon: ReactNode; hint:
   },
 };
 
-/** Text/background classes for risk colors on white surfaces. */
-export const RISK_META_LIGHT: Record<RiskLevel, { text: string; bg: string; ring: string }> = {
-  LOW: { text: "text-emerald-700", bg: "bg-emerald-50", ring: "ring-emerald-600/20" },
-  MEDIUM: { text: "text-amber-700", bg: "bg-amber-50", ring: "ring-amber-600/25" },
-  HIGH: { text: "text-orange-700", bg: "bg-orange-50", ring: "ring-orange-600/20" },
-  CRITICAL: { text: "text-rose-700", bg: "bg-rose-50", ring: "ring-rose-600/20" },
-};
-
-export type Tone = "dark" | "light";
-
 export function signalMeta(code: string) {
   return SIGNAL_META[code] ?? { label: code.replace(/_/g, " ").toLowerCase(), icon: <LayersIcon size={15} />, hint: "" };
 }
@@ -102,22 +94,19 @@ export function RiskBadge({
   level,
   score,
   size = "md",
-  tone = "dark",
 }: {
   level: RiskLevel;
   score?: number;
   size?: "sm" | "md";
-  tone?: Tone;
 }) {
   const meta = RISK_META[level];
-  const colors = tone === "light" ? RISK_META_LIGHT[level] : meta;
   return (
     <span
       className={cx(
         "inline-flex shrink-0 items-center gap-1.5 rounded-full font-medium ring-1 ring-inset",
-        colors.bg,
-        colors.text,
-        colors.ring,
+        meta.bg,
+        meta.text,
+        meta.ring,
         size === "sm" ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-0.5 text-xs",
       )}
     >
@@ -135,14 +124,12 @@ export function ScoreRing({
   size = 132,
   stroke = 10,
   showLabel = true,
-  tone = "dark",
 }: {
   score: number;
   level: RiskLevel;
   size?: number;
   stroke?: number;
   showLabel?: boolean;
-  tone?: Tone;
 }) {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -154,7 +141,14 @@ export function ScoreRing({
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-        <circle cx={center} cy={center} r={radius} fill="none" stroke={tone === "light" ? "rgb(148 163 184 / 0.22)" : "rgb(148 163 184 / 0.1)"} strokeWidth={stroke} />
+        <circle
+          cx={center}
+          cy={center}
+          r={radius}
+          fill="none"
+          strokeWidth={stroke}
+          className="stroke-slate-400/20 dark:stroke-slate-400/10"
+        />
         <circle
           cx={center}
           cy={center}
@@ -172,8 +166,9 @@ export function ScoreRing({
       {showLabel && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span
-            className={cx("tabular text-[34px] font-semibold leading-none tracking-tight", tone === "light" ? "text-slate-900" : "text-white")}
-            style={{ fontSize: size * 0.26 }}>
+            className="tabular font-semibold leading-none tracking-tight text-slate-900 dark:text-white"
+            style={{ fontSize: size * 0.26 }}
+          >
             {score}
           </span>
           <span className="mt-1 text-[11px] font-medium text-slate-500">of 100</span>
@@ -185,14 +180,14 @@ export function ScoreRing({
 
 /** Horizontal 0–100 track where each triggered signal is a segment sized
  * by its points, so the reader sees what the score is made of. */
-export function ScoreComposition({ signals, level, tone = "dark" }: { signals: RiskSignal[]; level: RiskLevel; tone?: Tone }) {
+export function ScoreComposition({ signals, level }: { signals: RiskSignal[]; level: RiskLevel }) {
   const triggered = signals.filter((s) => s.triggered && s.points > 0).sort((a, b) => b.points - a.points);
   const total = triggered.reduce((sum, s) => sum + s.points, 0);
   const meta = RISK_META[level];
 
   return (
     <div>
-      <div className={cx("relative h-2.5 w-full overflow-hidden rounded-full", tone === "light" ? "bg-slate-100" : "bg-white/[0.06]")}>
+      <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-white/[0.06]">
         <div className="absolute inset-y-0 left-0 flex origin-left animate-bar-grow gap-[2px]" style={{ width: `${Math.min(total, 100)}%` }}>
           {triggered.map((s, i) => (
             <div
@@ -204,10 +199,10 @@ export function ScoreComposition({ signals, level, tone = "dark" }: { signals: R
           ))}
         </div>
         {LEVEL_THRESHOLDS.map((t) => (
-          <div key={t} className={cx("absolute inset-y-0 w-px", tone === "light" ? "bg-white" : "bg-canvas")} style={{ left: `${t}%` }} />
+          <div key={t} className="absolute inset-y-0 w-px bg-white dark:bg-canvas" style={{ left: `${t}%` }} />
         ))}
       </div>
-      <div className={cx("relative mt-2 h-4 text-[10px] font-medium uppercase tracking-wider", tone === "light" ? "text-slate-400" : "text-slate-600")}>
+      <div className="relative mt-2 h-4 text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-600">
         <span className="absolute left-0">Low</span>
         <span className="absolute -translate-x-1/2" style={{ left: "37.5%" }}>Medium</span>
         <span className="absolute -translate-x-1/2" style={{ left: "62.5%" }}>High</span>
@@ -223,7 +218,7 @@ export function RiskDistribution({ counts }: { counts: Record<RiskLevel, number>
 
   return (
     <div>
-      <div className="flex h-2.5 w-full gap-[3px] overflow-hidden rounded-full bg-white/[0.06]">
+      <div className="flex h-2.5 w-full gap-[3px] overflow-hidden rounded-full bg-slate-100 dark:bg-white/[0.06]">
         {total > 0 &&
           RISK_LEVELS.filter((l) => counts[l] > 0).map((l) => (
             <div
@@ -236,11 +231,11 @@ export function RiskDistribution({ counts }: { counts: Record<RiskLevel, number>
       <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2.5">
         {RISK_LEVELS.map((l) => (
           <div key={l} className="flex items-center justify-between gap-2 text-sm">
-            <dt className="flex items-center gap-2 text-slate-400">
+            <dt className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
               <span className={cx("size-2 rounded-full", RISK_META[l].dot)} />
               {RISK_META[l].label}
             </dt>
-            <dd className="tabular font-medium text-slate-200">{counts[l]}</dd>
+            <dd className="tabular font-medium text-slate-800 dark:text-slate-200">{counts[l]}</dd>
           </div>
         ))}
       </dl>

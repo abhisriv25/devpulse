@@ -36,7 +36,7 @@ export function RepositoriesPage() {
             : "Connect a repository to start scoring its pull requests."
         }
         actions={
-          <ButtonAnchor href={githubInstallUrl()} variant="primary">
+          <ButtonAnchor href={githubInstallUrl()} variant="solid">
             <PlusIcon size={14} />
             Connect repository
           </ButtonAnchor>
@@ -76,7 +76,7 @@ export function RepositoriesPage() {
               title="Nothing connected yet"
               description="Install the DevPulse GitHub App and choose which repositories to watch. It only asks for read access."
               action={
-                <ButtonAnchor href={githubInstallUrl()} variant="primary">
+                <ButtonAnchor href={githubInstallUrl()} variant="solid">
                   <PlusIcon size={14} /> Connect repository
                 </ButtonAnchor>
               }
@@ -90,9 +90,9 @@ export function RepositoriesPage() {
             <li>
               <a
                 href={githubInstallUrl()}
-                className="group flex h-full min-h-[148px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong text-sm text-slate-500 transition-colors hover:border-emerald-400/40 hover:bg-emerald-400/[0.03] hover:text-emerald-300"
+                className="group flex h-full min-h-[148px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 dark:border-line-strong text-sm text-slate-500 transition-colors hover:border-emerald-500 dark:hover:border-emerald-400/40 hover:bg-emerald-50 dark:hover:bg-emerald-400/[0.03] hover:text-emerald-700 dark:hover:text-emerald-300"
               >
-                <span className="flex size-9 items-center justify-center rounded-lg bg-white/[0.04] transition-colors group-hover:bg-emerald-400/10">
+                <span className="flex size-9 items-center justify-center rounded-lg bg-slate-100 dark:bg-white/[0.04] transition-colors group-hover:bg-emerald-50 dark:group-hover:bg-emerald-400/10">
                   <PlusIcon size={16} />
                 </span>
                 Add or remove repositories
@@ -117,20 +117,20 @@ function RepoCard({ repo, pullRequests, index }: { repo: Repository; pullRequest
     <li className="animate-fade-in" style={{ animationDelay: `${index * 50}ms` }}>
       <Link
         to={`/pulls?repo=${repo.id}`}
-        className="group flex h-full flex-col rounded-xl border border-line bg-surface p-5 shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:bg-surface-raised"
+        className="group flex h-full flex-col rounded-xl border border-slate-200 dark:border-line bg-white dark:bg-surface p-5 shadow-sm dark:shadow-card transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 dark:hover:border-line-strong hover:bg-white dark:hover:bg-surface-raised"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-300 ring-1 ring-inset ring-emerald-400/20">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-300 ring-1 ring-inset ring-emerald-600/20 dark:ring-emerald-400/20">
               <RepoIcon size={16} />
             </span>
             <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-white">{repo.name}</p>
+              <p className="truncate text-sm font-medium text-slate-900 dark:text-white">{repo.name}</p>
               <p className="truncate text-xs text-slate-500">{repo.owner}</p>
             </div>
           </div>
           {repo.private && (
-            <span className="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-slate-400 ring-1 ring-inset ring-line-strong">
+            <span className="flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] text-slate-600 dark:text-slate-400 ring-1 ring-inset ring-slate-300 dark:ring-line-strong">
               <LockIcon size={10} /> Private
             </span>
           )}
@@ -146,7 +146,7 @@ function RepoCard({ repo, pullRequests, index }: { repo: Repository; pullRequest
           <Metric label="Tracked" value={repoPrs.length} />
         </div>
 
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-line pt-3.5 text-xs text-slate-500">
+        <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-200 dark:border-line pt-3.5 text-xs text-slate-500">
           {worst?.latestRisk ? (
             <span className="flex min-w-0 items-center gap-2">
               <span className="shrink-0">Riskiest:</span>
@@ -155,7 +155,7 @@ function RepoCard({ repo, pullRequests, index }: { repo: Repository; pullRequest
           ) : (
             <span>Connected {timeAgo(repo.connectedAt)}</span>
           )}
-          <ChevronRightIcon size={14} className="shrink-0 text-slate-600 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-400" />
+          <ChevronRightIcon size={14} className="shrink-0 text-slate-400 dark:text-slate-600 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-600 dark:group-hover:text-slate-400" />
         </div>
       </Link>
     </li>
@@ -165,7 +165,7 @@ function RepoCard({ repo, pullRequests, index }: { repo: Repository; pullRequest
 function Metric({ label, value, className }: { label: string; value: number; className?: string }) {
   return (
     <div className="mb-4">
-      <p className={`tabular text-xl font-semibold ${className ?? "text-slate-100"}`}>{value}</p>
+      <p className={`tabular text-xl font-semibold ${className ?? "text-slate-900 dark:text-slate-100"}`}>{value}</p>
       <p className="mt-0.5 text-[11px] text-slate-500">{label}</p>
     </div>
   );
