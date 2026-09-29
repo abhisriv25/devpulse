@@ -1,6 +1,6 @@
 # DevPulse
 
-GitHub-connected PR intelligence: a rule-based PR risk engine + engineering-memory
+GitHub-connected PR intelligence: a rule-based PR risk engine + engineering-memory and
 RAG. See the original design docs for the full product vision — **this repo
 implements it slice by slice, not all at once.**
 
