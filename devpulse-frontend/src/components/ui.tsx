@@ -6,7 +6,7 @@ export function cx(...classes: (string | false | null | undefined)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "solid" | "outline" | "subtle";
 type ButtonSize = "sm" | "md";
 
 const BUTTON_BASE =
@@ -16,6 +16,13 @@ const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-emerald-400 text-emerald-950 hover:bg-emerald-300 shadow-[0_0_0_1px_rgb(52_211_153/0.4),0_6px_20px_-6px_rgb(52_211_153/0.5)]",
   secondary: "border border-line-strong bg-white/[0.03] text-slate-200 hover:bg-white/[0.07] hover:text-white",
   ghost: "text-slate-400 hover:bg-white/[0.05] hover:text-slate-100",
+  // Variants for white surfaces (the public site).
+  // Variants for the public site, which can be light or dark (.dark wrapper).
+  solid:
+    "bg-slate-900 text-white hover:bg-slate-800 shadow-[0_1px_2px_rgb(15_23_42/0.2),0_8px_20px_-8px_rgb(15_23_42/0.45)] dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200 dark:shadow-[0_8px_24px_-8px_rgb(255_255_255/0.25)]",
+  outline:
+    "border border-slate-300 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50 dark:border-white/15 dark:bg-white/[0.03] dark:text-slate-100 dark:hover:border-white/25 dark:hover:bg-white/[0.07]",
+  subtle: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/[0.06] dark:hover:text-white",
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {

@@ -1,8 +1,9 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { githubLoginUrl } from "../lib/api";
+import { PublicThemeProvider, usePublicTheme } from "../lib/public-theme";
 import { SITE } from "../lib/site";
-import { GithubIcon, PulseMark } from "./icons";
+import { CloseIcon, GithubIcon, MenuIcon, MoonIcon, PulseMark, SunIcon } from "./icons";
 import { buttonClasses, cx } from "./ui";
 
 const LINKS = [
@@ -11,92 +12,364 @@ const LINKS = [
   { to: "/terms", label: "Terms" },
 ];
 
-/** Header + footer shared by the landing page and the public info pages. */
+/** Shared width for every public page, so header, sections and footer line up. */
+export const PAGE_CONTAINER = "mx-auto w-full max-w-[88rem] px-5 sm:px-8 lg:px-12";
+
+/** Header + footer shared by the landing page and the public info pages.
+ * The public site has a light/dark toggle; the signed-in app is always dark. */
 export function PublicLayout({ children, backdrop }: { children: ReactNode; backdrop?: ReactNode }) {
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-canvas text-slate-100">
-      {backdrop ?? <SoftBackdrop />}
-      <PublicHeader />
-      <div className="relative flex-1">{children}</div>
-      <PublicFooter />
-    </div>
+    <PublicThemeProvider>
+      {(theme) => (
+        // overflow-x-clip (not overflow-hidden) so the sticky header still sticks.
+        <div
+          className={cx(
+            "relative flex min-h-screen flex-col overflow-x-clip bg-white text-slate-900 dark:bg-canvas dark:text-slate-100",
+            theme === "dark" && "dark",
+          )}
+        >
+          <a
+            href="#main"
+            className="sr-only z-50 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+          >
+            Skip to content
+          </a>
+          {backdrop ?? <SoftBackdrop />}
+          <PublicHeader />
+          <div id="main" className="relative flex-1">
+            {children}
+          </div>
+          <PublicFooter />
+        </div>
+      )}
+    </PublicThemeProvider>
   );
 }
 
+/** In-page anchors shown in the header on the landing page only. */
+const LANDING_SECTIONS = [
+  { id: "signals", label: "Engine" },
+  { id: "how-it-works", label: "How it works" },
+  { id: "product", label: "Product" },
+  { id: "security", label: "Security" },
+  { id: "faq", label: "FAQ" },
+];
+
 function PublicHeader() {
   const onLanding = useLocation().pathname === "/login";
+  const [scrolled, setScrolled] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const activeSection = useActiveSection(onLanding ? LANDING_SECTIONS.map((s) => s.id) : []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 8);
+      const scrollable = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(scrollable > 0 ? Math.min(1, window.scrollY / scrollable) : 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   return (
-    <header className="relative z-10 mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 pt-7 sm:px-10">
-      <Link to="/login" className="group flex items-center gap-2.5">
-        <span className="flex size-8 items-center justify-center rounded-lg border border-emerald-400/25 bg-emerald-400/10 text-emerald-300 transition-shadow group-hover:shadow-glow">
-          <PulseMark size={18} />
-        </span>
-        <span className="text-[15px] font-semibold tracking-tight text-white">{SITE.name}</span>
-      </Link>
+    <header
+      className={cx(
+        "sticky top-0 z-30 border-b transition-colors duration-300",
+        scrolled || menuOpen
+          ? "border-slate-200 bg-white/80 backdrop-blur-xl dark:border-white/10 dark:bg-canvas/75"
+          : "border-transparent",
+      )}
+    >
+      <div className={cx(PAGE_CONTAINER, "flex h-16 items-center justify-between gap-4")}>
+        <Brand />
 
-      <nav className="flex items-center gap-1 sm:gap-2" aria-label="Site">
-        {LINKS.slice(0, 2).map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            className={({ isActive }) =>
-              cx(
-                "rounded-lg px-2.5 py-1.5 text-sm transition-colors",
-                isActive ? "text-white" : "text-slate-400 hover:text-slate-100",
-              )
-            }
-          >
-            {link.label}
-          </NavLink>
-        ))}
-        {!onLanding && (
-          <a href={githubLoginUrl()} className={buttonClasses("secondary", "sm", "ml-1")}>
-            <GithubIcon size={13} />
-            Sign in
-          </a>
+        {onLanding && (
+          <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Page sections">
+            {LANDING_SECTIONS.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                aria-current={activeSection === section.id ? "true" : undefined}
+                className={cx(
+                  "rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                  activeSection === section.id
+                    ? "bg-slate-100 text-slate-900 dark:bg-white/[0.08] dark:text-white"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
+                )}
+              >
+                {section.label}
+              </a>
+            ))}
+          </nav>
         )}
-      </nav>
+
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <nav className="hidden items-center gap-1 sm:flex" aria-label="Site">
+            {LINKS.slice(0, onLanding ? 1 : 2).map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                className={({ isActive }) =>
+                  cx(
+                    "rounded-lg px-2.5 py-1.5 text-sm font-medium transition-colors",
+                    isActive
+                      ? "text-slate-900 dark:text-white"
+                      : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white",
+                  )
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
+          <ThemeToggle />
+          <a href={githubLoginUrl()} className={buttonClasses("solid", "sm", "hidden h-9 px-3.5 text-[13px] sm:inline-flex")}>
+            <GithubIcon size={14} />
+            {onLanding ? "Get started" : "Sign in"}
+          </a>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((open) => !open)}
+            aria-expanded={menuOpen}
+            aria-controls="public-mobile-menu"
+            aria-label={menuOpen ? "Close menu" : "Open menu"}
+            className={cx(ICON_BUTTON, "lg:hidden")}
+          >
+            {menuOpen ? <CloseIcon size={16} /> : <MenuIcon size={16} />}
+          </button>
+        </div>
+      </div>
+
+      {menuOpen && (
+        <div id="public-mobile-menu" className="animate-fade-in border-t border-slate-200 lg:hidden dark:border-white/10">
+          <nav className={cx(PAGE_CONTAINER, "flex flex-col gap-1 py-4")} aria-label="Mobile">
+            {onLanding &&
+              LANDING_SECTIONS.map((section) => (
+                <a
+                  key={section.id}
+                  href={`#${section.id}`}
+                  onClick={() => setMenuOpen(false)}
+                  className="rounded-lg px-3 py-2.5 text-[15px] font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/[0.06]"
+                >
+                  {section.label}
+                </a>
+              ))}
+            {LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setMenuOpen(false)}
+                className="rounded-lg px-3 py-2.5 text-[15px] font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/[0.06]"
+              >
+                {link.label}
+              </Link>
+            ))}
+            <a href={githubLoginUrl()} className={buttonClasses("solid", "md", "mt-3 h-11 text-[15px]")}>
+              <GithubIcon size={16} />
+              Continue with GitHub
+            </a>
+          </nav>
+        </div>
+      )}
+
+      {onLanding && (
+        <div
+          className="absolute inset-x-0 bottom-[-1px] h-px origin-left bg-gradient-to-r from-emerald-500 to-sky-500"
+          style={{ transform: `scaleX(${progress})` }}
+          aria-hidden="true"
+        />
+      )}
     </header>
   );
 }
 
+const ICON_BUTTON =
+  "inline-flex size-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition-colors hover:border-slate-300 hover:text-slate-900 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-300 dark:hover:border-white/20 dark:hover:text-white";
+
+function ThemeToggle() {
+  const { theme, toggle } = usePublicTheme();
+  const next = theme === "light" ? "dark" : "light";
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className={ICON_BUTTON}
+      aria-label={`Switch to ${next} theme`}
+      title={`Switch to ${next} theme`}
+    >
+      <span key={theme} className="animate-fade-in">
+        {theme === "light" ? <MoonIcon size={16} /> : <SunIcon size={16} />}
+      </span>
+    </button>
+  );
+}
+
+/** Which of the given section ids is currently under the header. */
+function useActiveSection(ids: string[]) {
+  const [active, setActive] = useState<string | null>(null);
+  const key = ids.join(",");
+
+  useEffect(() => {
+    if (!key || typeof IntersectionObserver === "undefined") return;
+    const elements = key
+      .split(",")
+      .map((id) => document.getElementById(id))
+      .filter((el): el is HTMLElement => el !== null);
+
+    const visible = new Map<string, boolean>();
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) visible.set(entry.target.id, entry.isIntersecting);
+        // The first section (in page order) that crosses the band wins.
+        setActive(elements.find((el) => visible.get(el.id))?.id ?? null);
+      },
+      { rootMargin: "-40% 0px -55% 0px" },
+    );
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [key]);
+
+  return active;
+}
+
+function Brand() {
+  return (
+    <Link to="/login" className="flex items-center gap-2.5">
+      <span className="flex size-8 items-center justify-center rounded-lg bg-slate-900 text-emerald-400 ring-1 ring-inset ring-white/10 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/25">
+        <PulseMark size={18} />
+      </span>
+      <span className="text-[16px] font-semibold tracking-tight text-slate-900 dark:text-white">{SITE.name}</span>
+    </Link>
+  );
+}
+
+const FOOTER_COLUMNS: { title: string; links: { label: string; to?: string; href?: string }[] }[] = [
+  {
+    title: "Product",
+    links: [
+      { label: "Risk engine", href: "/login#signals" },
+      { label: "How it works", href: "/login#how-it-works" },
+      { label: "Security", href: "/login#security" },
+      { label: "FAQ", href: "/login#faq" },
+    ],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About", to: "/about" },
+      { label: "Source code", href: SITE.sourceUrl },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Privacy", to: "/privacy" },
+      { label: "Terms", to: "/terms" },
+    ],
+  },
+];
+
+const FOOTER_LINK = "text-sm text-slate-500 transition-colors hover:text-slate-900 dark:text-slate-400 dark:hover:text-white";
+
 function PublicFooter() {
   return (
-    <footer className="relative z-10 border-t border-line">
-      <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-7 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-10">
-        <p>
-          © {new Date().getFullYear()} {SITE.name}. Read-only by design — we never store your source code.
-        </p>
-        <nav className="flex flex-wrap items-center gap-x-5 gap-y-2" aria-label="Footer">
-          {LINKS.map((link) => (
-            <Link key={link.to} to={link.to} className="transition-colors hover:text-slate-200">
-              {link.label}
-            </Link>
-          ))}
-          <a href={SITE.sourceUrl} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 transition-colors hover:text-slate-200">
-            <GithubIcon size={12} />
-            Source
+    <footer className="relative z-10 border-t border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-surface">
+      <div className={cx(PAGE_CONTAINER, "grid gap-10 py-14 md:grid-cols-[1.5fr_repeat(3,1fr)]")}>
+        <div className="max-w-xs">
+          <Brand />
+          <p className="mt-4 text-sm leading-relaxed text-slate-500 dark:text-slate-400">
+            Pull request risk scoring for GitHub. Read-only by design — we never store your source code.
+          </p>
+        </div>
+
+        {FOOTER_COLUMNS.map((column) => (
+          <div key={column.title}>
+            <p className="text-sm font-semibold text-slate-900 dark:text-white">{column.title}</p>
+            <ul className="mt-4 space-y-3">
+              {column.links.map((link) => (
+                <li key={link.label}>
+                  {link.to ? (
+                    <Link to={link.to} className={FOOTER_LINK}>
+                      {link.label}
+                    </Link>
+                  ) : (
+                    <a
+                      href={link.href}
+                      {...(link.href?.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}
+                      className={FOOTER_LINK}
+                    >
+                      {link.label}
+                    </a>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t border-slate-200 dark:border-white/10">
+        <div
+          className={cx(
+            PAGE_CONTAINER,
+            "flex flex-col gap-3 py-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between",
+          )}
+        >
+          <p>
+            © {new Date().getFullYear()} {SITE.name}. All rights reserved.
+          </p>
+          <a
+            href={SITE.sourceUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 transition-colors hover:text-slate-900 dark:hover:text-white"
+          >
+            <GithubIcon size={13} />
+            View on GitHub
           </a>
-        </nav>
+        </div>
       </div>
     </footer>
   );
 }
 
+/** Faint grid lines drawn in currentColor, so a text-* class themes them. */
+export function GridLines({ className, mask, size = 56 }: { className?: string; mask: string; size?: number }) {
+  return (
+    <div
+      className={cx("absolute inset-0", className)}
+      style={{
+        backgroundImage:
+          "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
+        backgroundSize: `${size}px ${size}px`,
+        maskImage: mask,
+        WebkitMaskImage: mask,
+      }}
+    />
+  );
+}
+
 function SoftBackdrop() {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      <div className="absolute left-1/2 top-[-18rem] h-[34rem] w-[48rem] -translate-x-1/2 rounded-full bg-emerald-500/[0.08] blur-[140px]" />
-      <div
-        className="absolute inset-0 opacity-[0.035]"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
-          backgroundSize: "56px 56px",
-          maskImage: "radial-gradient(ellipse 60% 40% at 50% 0%, black 10%, transparent 80%)",
-          WebkitMaskImage: "radial-gradient(ellipse 60% 40% at 50% 0%, black 10%, transparent 80%)",
-        }}
+    <div className="pointer-events-none absolute inset-x-0 top-0 h-[40rem] overflow-hidden" aria-hidden="true">
+      <div className="absolute left-1/2 top-[-18rem] h-[34rem] w-[60rem] -translate-x-1/2 rounded-full bg-emerald-200/40 blur-[120px] dark:bg-emerald-500/[0.08]" />
+      <GridLines
+        className="text-slate-200/80 dark:text-white/[0.04]"
+        mask="radial-gradient(ellipse 60% 55% at 50% 0%, black 10%, transparent 80%)"
       />
     </div>
   );
@@ -116,11 +389,11 @@ export function DocumentPage({
 }) {
   return (
     <PublicLayout>
-      <main className="mx-auto max-w-3xl px-6 pb-20 pt-14 sm:px-10 sm:pt-20">
+      <main className="mx-auto max-w-3xl px-6 pb-24 pt-14 sm:px-10 sm:pt-20">
         <div className="animate-fade-in-up">
-          <p className="text-xs font-medium uppercase tracking-wider text-emerald-300">{eyebrow}</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white sm:text-5xl">{title}</h1>
-          <div className="mt-5 text-base leading-relaxed text-slate-400">{intro}</div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600 dark:text-emerald-400">{eyebrow}</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl dark:text-white">{title}</h1>
+          <div className="mt-5 text-base leading-relaxed text-slate-600 dark:text-slate-400">{intro}</div>
           <p className="mt-4 text-xs text-slate-500">Last updated {SITE.policiesUpdated}</p>
         </div>
         <div className="mt-12 animate-fade-in-up space-y-12 [animation-delay:80ms]">{children}</div>
@@ -131,16 +404,16 @@ export function DocumentPage({
 
 export function DocSection({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} className="scroll-mt-8">
-      <h2 className="text-lg font-semibold text-white">
+    <section id={id} className="scroll-mt-24">
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
         <a href={`#${id}`} className="group inline-flex items-center gap-2">
           {title}
-          <span className="text-slate-600 opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true">
+          <span className="text-slate-400 opacity-0 transition-opacity group-hover:opacity-100 dark:text-slate-600" aria-hidden="true">
             #
           </span>
         </a>
       </h2>
-      <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-slate-400 [&_strong]:font-medium [&_strong]:text-slate-200 [&_ul]:space-y-2 [&_ul]:pl-1 [&_li]:flex [&_li]:gap-2.5 [&_li]:before:mt-[0.6em] [&_li]:before:size-1.5 [&_li]:before:shrink-0 [&_li]:before:rounded-full [&_li]:before:bg-slate-600 [&_li]:before:content-['']">
+      <div className="mt-3 space-y-3 text-[15px] leading-relaxed text-slate-600 dark:text-slate-400 [&_strong]:font-medium [&_strong]:text-slate-900 dark:[&_strong]:text-slate-200 [&_ul]:space-y-2 [&_ul]:pl-1 [&_li]:flex [&_li]:gap-2.5 [&_li]:before:mt-[0.6em] [&_li]:before:size-1.5 [&_li]:before:shrink-0 [&_li]:before:rounded-full [&_li]:before:bg-slate-400 dark:[&_li]:before:bg-slate-600 [&_li]:before:content-['']">
         {children}
       </div>
     </section>
@@ -151,14 +424,14 @@ export function ContactLine() {
   return SITE.contactEmail ? (
     <>
       email{" "}
-      <a href={`mailto:${SITE.contactEmail}`} className="text-emerald-300 hover:underline">
+      <a href={`mailto:${SITE.contactEmail}`} className="font-medium text-emerald-700 hover:underline dark:text-emerald-300">
         {SITE.contactEmail}
       </a>
     </>
   ) : (
     <>
       reach the creators through the links on the{" "}
-      <Link to="/about" className="text-emerald-300 hover:underline">
+      <Link to="/about" className="font-medium text-emerald-700 hover:underline dark:text-emerald-300">
         About page
       </Link>
     </>

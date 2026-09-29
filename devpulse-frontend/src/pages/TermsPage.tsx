@@ -18,7 +18,7 @@ export function TermsPage() {
       <DocSection id="your-account" title="Your account">
         <p>
           You sign in with your GitHub account and must follow{" "}
-          <a href="https://docs.github.com/site-policy/github-terms/github-terms-of-service" target="_blank" rel="noreferrer" className="text-emerald-300 hover:underline">
+          <a href="https://docs.github.com/site-policy/github-terms/github-terms-of-service" target="_blank" rel="noreferrer" className="text-emerald-700 dark:text-emerald-300 hover:underline">
             GitHub's Terms of Service
           </a>
           . Only connect repositories you're allowed to share with a third-party tool.
@@ -28,7 +28,7 @@ export function TermsPage() {
       <DocSection id="your-content" title="Your content">
         <p>
           Your code and pull requests remain yours. DevPulse only uses the data described in the{" "}
-          <Link to="/privacy" className="text-emerald-300 hover:underline">
+          <Link to="/privacy" className="text-emerald-700 dark:text-emerald-300 hover:underline">
             Privacy policy
           </Link>
           , and only to provide the service.

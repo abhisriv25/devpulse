@@ -268,6 +268,19 @@ export const EyeOffIcon = (p: IconProps) => (
   </StrokeIcon>
 );
 
+export const SunIcon = (p: IconProps) => (
+  <StrokeIcon {...p}>
+    <circle cx="8" cy="8" r="2.75" />
+    <path d="M8 1.5v1.25M8 13.25v1.25M1.5 8h1.25M13.25 8h1.25M3.4 3.4l.9.9M11.7 11.7l.9.9M3.4 12.6l.9-.9M11.7 4.3l.9-.9" />
+  </StrokeIcon>
+);
+
+export const MoonIcon = (p: IconProps) => (
+  <StrokeIcon {...p}>
+    <path d="M13.5 9.6A5.75 5.75 0 1 1 6.4 2.5a4.5 4.5 0 0 0 7.1 7.1Z" />
+  </StrokeIcon>
+);
+
 export const ServerIcon = (p: IconProps) => (
   <StrokeIcon {...p}>
     <rect x="2" y="2.25" width="12" height="5" rx="1.25" />

@@ -84,6 +84,16 @@ export const SIGNAL_META: Record<string, { label: string; icon: ReactNode; hint:
   },
 };
 
+/** Text/background classes for risk colors on white surfaces. */
+export const RISK_META_LIGHT: Record<RiskLevel, { text: string; bg: string; ring: string }> = {
+  LOW: { text: "text-emerald-700", bg: "bg-emerald-50", ring: "ring-emerald-600/20" },
+  MEDIUM: { text: "text-amber-700", bg: "bg-amber-50", ring: "ring-amber-600/25" },
+  HIGH: { text: "text-orange-700", bg: "bg-orange-50", ring: "ring-orange-600/20" },
+  CRITICAL: { text: "text-rose-700", bg: "bg-rose-50", ring: "ring-rose-600/20" },
+};
+
+export type Tone = "dark" | "light";
+
 export function signalMeta(code: string) {
   return SIGNAL_META[code] ?? { label: code.replace(/_/g, " ").toLowerCase(), icon: <LayersIcon size={15} />, hint: "" };
 }
@@ -92,19 +102,22 @@ export function RiskBadge({
   level,
   score,
   size = "md",
+  tone = "dark",
 }: {
   level: RiskLevel;
   score?: number;
   size?: "sm" | "md";
+  tone?: Tone;
 }) {
   const meta = RISK_META[level];
+  const colors = tone === "light" ? RISK_META_LIGHT[level] : meta;
   return (
     <span
       className={cx(
         "inline-flex shrink-0 items-center gap-1.5 rounded-full font-medium ring-1 ring-inset",
-        meta.bg,
-        meta.text,
-        meta.ring,
+        colors.bg,
+        colors.text,
+        colors.ring,
         size === "sm" ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-0.5 text-xs",
       )}
     >
@@ -122,12 +135,14 @@ export function ScoreRing({
   size = 132,
   stroke = 10,
   showLabel = true,
+  tone = "dark",
 }: {
   score: number;
   level: RiskLevel;
   size?: number;
   stroke?: number;
   showLabel?: boolean;
+  tone?: Tone;
 }) {
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -139,7 +154,7 @@ export function ScoreRing({
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90">
-        <circle cx={center} cy={center} r={radius} fill="none" stroke="rgb(148 163 184 / 0.1)" strokeWidth={stroke} />
+        <circle cx={center} cy={center} r={radius} fill="none" stroke={tone === "light" ? "rgb(148 163 184 / 0.22)" : "rgb(148 163 184 / 0.1)"} strokeWidth={stroke} />
         <circle
           cx={center}
           cy={center}
@@ -156,7 +171,9 @@ export function ScoreRing({
       </svg>
       {showLabel && (
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="tabular text-[34px] font-semibold leading-none tracking-tight text-white" style={{ fontSize: size * 0.26 }}>
+          <span
+            className={cx("tabular text-[34px] font-semibold leading-none tracking-tight", tone === "light" ? "text-slate-900" : "text-white")}
+            style={{ fontSize: size * 0.26 }}>
             {score}
           </span>
           <span className="mt-1 text-[11px] font-medium text-slate-500">of 100</span>
@@ -168,14 +185,14 @@ export function ScoreRing({
 
 /** Horizontal 0–100 track where each triggered signal is a segment sized
  * by its points, so the reader sees what the score is made of. */
-export function ScoreComposition({ signals, level }: { signals: RiskSignal[]; level: RiskLevel }) {
+export function ScoreComposition({ signals, level, tone = "dark" }: { signals: RiskSignal[]; level: RiskLevel; tone?: Tone }) {
   const triggered = signals.filter((s) => s.triggered && s.points > 0).sort((a, b) => b.points - a.points);
   const total = triggered.reduce((sum, s) => sum + s.points, 0);
   const meta = RISK_META[level];
 
   return (
     <div>
-      <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-white/[0.06]">
+      <div className={cx("relative h-2.5 w-full overflow-hidden rounded-full", tone === "light" ? "bg-slate-100" : "bg-white/[0.06]")}>
         <div className="absolute inset-y-0 left-0 flex origin-left animate-bar-grow gap-[2px]" style={{ width: `${Math.min(total, 100)}%` }}>
           {triggered.map((s, i) => (
             <div
@@ -187,10 +204,10 @@ export function ScoreComposition({ signals, level }: { signals: RiskSignal[]; le
           ))}
         </div>
         {LEVEL_THRESHOLDS.map((t) => (
-          <div key={t} className="absolute inset-y-0 w-px bg-canvas" style={{ left: `${t}%` }} />
+          <div key={t} className={cx("absolute inset-y-0 w-px", tone === "light" ? "bg-white" : "bg-canvas")} style={{ left: `${t}%` }} />
         ))}
       </div>
-      <div className="relative mt-2 h-4 text-[10px] font-medium uppercase tracking-wider text-slate-600">
+      <div className={cx("relative mt-2 h-4 text-[10px] font-medium uppercase tracking-wider", tone === "light" ? "text-slate-400" : "text-slate-600")}>
         <span className="absolute left-0">Low</span>
         <span className="absolute -translate-x-1/2" style={{ left: "37.5%" }}>Medium</span>
         <span className="absolute -translate-x-1/2" style={{ left: "62.5%" }}>High</span>

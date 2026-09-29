@@ -1,6 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
+  // Only the public site uses dark: variants (via a .dark wrapper); the
+  // signed-in app is dark by default and has no dark: classes.
+  darkMode: "class",
   theme: {
     extend: {
       fontFamily: {
@@ -61,6 +64,14 @@ export default {
           "0%": { transform: "scaleX(0)" },
           "100%": { transform: "scaleX(1)" },
         },
+        marquee: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        "float-in": {
+          "0%": { opacity: "0", transform: "translateY(12px) scale(0.96)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
         pulse: {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.45" },
@@ -76,6 +87,8 @@ export default {
         shimmer: "shimmer 1.4s linear infinite",
         "ring-fill": "ring-fill 1s cubic-bezier(0.16,1,0.3,1) both",
         "bar-grow": "bar-grow 0.8s cubic-bezier(0.16,1,0.3,1) both",
+        marquee: "marquee 40s linear infinite",
+        "float-in": "float-in 0.6s cubic-bezier(0.16,1,0.3,1) both",
       },
     },
   },

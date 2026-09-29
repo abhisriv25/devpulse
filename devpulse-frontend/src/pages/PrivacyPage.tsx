@@ -23,12 +23,12 @@ export function PrivacyPage() {
     >
       <ul className="-mt-2 grid gap-3 sm:grid-cols-2">
         {HIGHLIGHTS.map((h) => (
-          <li key={h.title} className="flex gap-3 rounded-xl border border-line bg-surface p-4">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-300">
+          <li key={h.title} className="flex gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] p-4">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-300">
               {h.icon}
             </span>
             <div>
-              <p className="text-sm font-medium text-slate-100">{h.title}</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white">{h.title}</p>
               <p className="mt-0.5 text-[13px] leading-relaxed text-slate-500">{h.text}</p>
             </div>
           </li>
@@ -41,7 +41,7 @@ export function PrivacyPage() {
           <li>
             <span>
               <strong>Your GitHub profile basics</strong> — your GitHub user ID, username, display name and avatar URL.
-              We ask GitHub only for the <code className="font-mono text-[13px] text-slate-300">read:user</code> scope.
+              We ask GitHub only for the <code className="font-mono text-[13px] text-slate-700 dark:text-slate-300">read:user</code> scope.
             </span>
           </li>
           <li>
@@ -66,7 +66,7 @@ export function PrivacyPage() {
           <li>
             <span>
               <strong>Risk assessments</strong> — the score, the rules that fired, and the <em>paths</em> of the files
-              that triggered them (for example <code className="font-mono text-[13px] text-slate-300">src/auth/login.js</code>).
+              that triggered them (for example <code className="font-mono text-[13px] text-slate-700 dark:text-slate-300">src/auth/login.js</code>).
             </span>
           </li>
           <li>
@@ -117,7 +117,7 @@ export function PrivacyPage() {
 
       <DocSection id="cookies" title="Cookies">
         <p>
-          DevPulse sets <strong>one cookie</strong>, <code className="font-mono text-[13px] text-slate-300">devpulse.sid</code>,
+          DevPulse sets <strong>one cookie</strong>, <code className="font-mono text-[13px] text-slate-700 dark:text-slate-300">devpulse.sid</code>,
           to keep you signed in. It's HTTP-only (scripts can't read it), sent only over HTTPS, and expires after 7
           days or when you sign out. There are no other cookies.
         </p>

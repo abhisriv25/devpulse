@@ -52,17 +52,17 @@ const OPTIONAL_LINKS: { key: keyof CreatorLinks; label: string; icon: ReactNode 
 export function AboutPage() {
   return (
     <PublicLayout>
-      <main className="mx-auto max-w-5xl px-6 pb-20 pt-14 sm:px-10 sm:pt-20">
+      <main className="mx-auto max-w-6xl px-6 pb-20 pt-14 sm:px-10 sm:pt-20">
         {/* Intro */}
         <section className="mx-auto max-w-2xl animate-fade-in-up text-center">
-          <p className="text-xs font-medium uppercase tracking-wider text-emerald-300">About DevPulse</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+          <p className="text-xs font-medium uppercase tracking-wider text-emerald-700 dark:text-emerald-300">About DevPulse</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-5xl">
             Calmer code reviews,{" "}
-            <span className="bg-gradient-to-r from-emerald-300 via-teal-200 to-sky-300 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-emerald-600 dark:from-emerald-300 via-teal-500 dark:via-teal-200 to-sky-600 dark:to-sky-300 bg-clip-text text-transparent">
               by design.
             </span>
           </h1>
-          <p className="mt-5 text-base leading-relaxed text-slate-400 sm:text-lg">
+          <p className="mt-5 text-base leading-relaxed text-slate-600 dark:text-slate-400 sm:text-lg">
             Not every pull request deserves the same attention. A typo fix and an auth rewrite shouldn't wait in the
             same queue. DevPulse scores each PR by risk so reviewers can skim the routine and focus on the changes
             that can actually hurt.
@@ -71,20 +71,20 @@ export function AboutPage() {
 
         {/* How it works */}
         <section className="mt-16 animate-fade-in-up [animation-delay:60ms]" aria-labelledby="how-it-works">
-          <h2 id="how-it-works" className="text-center text-sm font-medium text-slate-400">
+          <h2 id="how-it-works" className="text-center text-sm font-medium text-slate-600 dark:text-slate-400">
             How it works
           </h2>
           <ol className="mt-6 grid gap-4 md:grid-cols-3">
             {STEPS.map((step, i) => (
-              <li key={step.title} className="relative rounded-xl border border-line bg-surface p-5 shadow-card">
+              <li key={step.title} className="relative rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] p-5 shadow-sm dark:shadow-none">
                 <div className="flex items-center justify-between">
-                  <span className="flex size-9 items-center justify-center rounded-lg bg-emerald-400/10 text-emerald-300">
+                  <span className="flex size-9 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-300">
                     {step.icon}
                   </span>
-                  <span className="font-mono text-xs text-slate-600">0{i + 1}</span>
+                  <span className="font-mono text-xs text-slate-400 dark:text-slate-600">0{i + 1}</span>
                 </div>
-                <h3 className="mt-4 text-base font-medium text-white">{step.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-slate-400">{step.text}</p>
+                <h3 className="mt-4 text-base font-medium text-slate-900 dark:text-white">{step.title}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{step.text}</p>
               </li>
             ))}
           </ol>
@@ -93,10 +93,10 @@ export function AboutPage() {
         {/* Team */}
         <section className="mt-20 animate-fade-in-up [animation-delay:120ms]" aria-labelledby="team">
           <div className="text-center">
-            <h2 id="team" className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+            <h2 id="team" className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-3xl">
               Made by
             </h2>
-            <p className="mt-2 text-sm text-slate-400">The people who built DevPulse.</p>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">The people who built DevPulse.</p>
           </div>
           <ul className="mx-auto mt-8 grid max-w-3xl gap-5 sm:grid-cols-2">
             {CREATORS.map((creator) => (
@@ -107,14 +107,14 @@ export function AboutPage() {
 
         {/* Stack */}
         <section className="mx-auto mt-20 max-w-3xl text-center" aria-labelledby="stack">
-          <h2 id="stack" className="text-sm font-medium text-slate-400">
+          <h2 id="stack" className="text-sm font-medium text-slate-600 dark:text-slate-400">
             Built with
           </h2>
           <ul className="mt-4 flex flex-wrap justify-center gap-2">
             {STACK.map((tech) => (
               <li
                 key={tech}
-                className="rounded-full border border-line bg-white/[0.02] px-3 py-1 text-xs text-slate-300"
+                className="rounded-full border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] px-3 py-1 text-xs text-slate-700 dark:text-slate-300"
               >
                 {tech}
               </li>
@@ -123,10 +123,10 @@ export function AboutPage() {
         </section>
 
         {/* CTA */}
-        <section className="relative mx-auto mt-20 max-w-3xl overflow-hidden rounded-2xl border border-line-strong bg-surface p-8 text-center shadow-card sm:p-10">
-          <div className="pointer-events-none absolute inset-x-0 -top-24 mx-auto h-48 w-2/3 rounded-full bg-emerald-400/10 blur-3xl" aria-hidden="true" />
-          <h2 className="relative text-2xl font-semibold tracking-tight text-white">Try it on your repos</h2>
-          <p className="relative mx-auto mt-2 max-w-md text-sm text-slate-400">
+        <section className="relative mx-auto mt-20 max-w-3xl overflow-hidden rounded-2xl border border-slate-300 dark:border-white/15 bg-white dark:bg-white/[0.03] p-8 text-center shadow-sm dark:shadow-none sm:p-10">
+          <div className="pointer-events-none absolute inset-x-0 -top-24 mx-auto h-48 w-2/3 rounded-full bg-emerald-50 dark:bg-emerald-400/10 blur-3xl" aria-hidden="true" />
+          <h2 className="relative text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">Try it on your repos</h2>
+          <p className="relative mx-auto mt-2 max-w-md text-sm text-slate-600 dark:text-slate-400">
             Sign in with GitHub, connect a repository, and your next pull request is scored automatically.
           </p>
           <div className="relative mt-6 flex flex-col justify-center gap-3 sm:flex-row">
@@ -134,7 +134,7 @@ export function AboutPage() {
               <GithubIcon size={15} />
               Continue with GitHub
             </a>
-            <a href={SITE.sourceUrl} target="_blank" rel="noreferrer" className={buttonClasses("secondary", "md", "h-10 px-5")}>
+            <a href={SITE.sourceUrl} target="_blank" rel="noreferrer" className={buttonClasses("outline", "md", "h-10 px-5")}>
               View the source
             </a>
           </div>
@@ -148,18 +148,18 @@ function CreatorCard({ creator }: { creator: Creator }) {
   const optional = OPTIONAL_LINKS.filter((l) => creator.links[l.key]);
 
   return (
-    <li className="flex flex-col rounded-2xl border border-line bg-surface p-6 shadow-card">
+    <li className="flex flex-col rounded-2xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] p-6 shadow-sm dark:shadow-none">
       <div className="flex items-center gap-4">
         <CreatorAvatar creator={creator} />
         <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold text-white">{creator.name}</h3>
-          <p className="text-sm text-emerald-300">{creator.role}</p>
+          <h3 className="truncate text-lg font-semibold text-slate-900 dark:text-white">{creator.name}</h3>
+          <p className="text-sm text-emerald-700 dark:text-emerald-300">{creator.role}</p>
         </div>
       </div>
 
-      {creator.bio && <p className="mt-4 text-sm leading-relaxed text-slate-400">{creator.bio}</p>}
+      {creator.bio && <p className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{creator.bio}</p>}
 
-      <div className="mt-5 flex flex-wrap gap-2 border-t border-line pt-5">
+      <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-200 dark:border-white/10 pt-5">
         {[...PRIMARY_LINKS, ...optional].map((link) => (
           <SocialLink key={link.key} href={hrefFor(link.key, creator.links[link.key])} label={link.label} icon={link.icon} name={creator.name} />
         ))}
@@ -179,7 +179,7 @@ function SocialLink({ href, label, icon, name }: { href: string; label: string; 
   if (!href) {
     return (
       <span
-        className={cx(classes, "cursor-default border border-dashed border-line-strong text-slate-600")}
+        className={cx(classes, "cursor-default border border-dashed border-slate-300 dark:border-white/15 text-slate-400 dark:text-slate-600")}
         title={`${name}'s ${label} — coming soon`}
         aria-label={`${label} link coming soon`}
       >
@@ -195,7 +195,7 @@ function SocialLink({ href, label, icon, name }: { href: string; label: string; 
       href={href}
       target={href.startsWith("mailto:") ? undefined : "_blank"}
       rel="noreferrer"
-      className={cx(classes, "border border-line-strong bg-white/[0.03] text-slate-200 hover:border-emerald-400/40 hover:text-white")}
+      className={cx(classes, "border border-slate-300 dark:border-white/15 bg-white dark:bg-white/[0.03] text-slate-800 dark:text-slate-200 hover:border-emerald-500 dark:hover:border-emerald-400/50 hover:text-slate-900 dark:hover:text-white")}
       aria-label={`${name} on ${label}`}
     >
       {icon}
@@ -220,10 +220,10 @@ function CreatorAvatar({ creator }: { creator: Creator }) {
           alt={creator.name}
           width={64}
           height={64}
-          className="relative size-16 rounded-full object-cover ring-2 ring-canvas"
+          className="relative size-16 rounded-full object-cover ring-2 ring-white dark:ring-canvas"
         />
       ) : (
-        <span className="relative flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400/30 to-indigo-500/40 text-xl font-semibold text-white ring-2 ring-canvas">
+        <span className="relative flex size-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400/30 to-indigo-500/40 text-xl font-semibold text-slate-900 dark:text-white ring-2 ring-white dark:ring-canvas">
           {initials}
         </span>
       )}
