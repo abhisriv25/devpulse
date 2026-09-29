@@ -21,13 +21,11 @@ export function PublicLayout({ children, backdrop }: { children: ReactNode; back
   return (
     <PublicThemeProvider>
       {(theme) => (
-        // overflow-x-clip (not overflow-hidden) so the sticky header still sticks.
-        <div
-          className={cx(
-            "relative flex min-h-screen flex-col overflow-x-clip bg-white text-slate-900 dark:bg-canvas dark:text-slate-100",
-            theme === "dark" && "dark",
-          )}
-        >
+        // Tailwind's dark: variant matches descendants of .dark only, so the
+        // class goes on this wrapper and the themed page styles one level in.
+        <div className={cx(theme === "dark" && "dark")}>
+        {/* overflow-x-clip (not overflow-hidden) so the sticky header still sticks. */}
+        <div className="relative flex min-h-screen flex-col overflow-x-clip bg-white text-slate-900 dark:bg-canvas dark:text-slate-100">
           <a
             href="#main"
             className="sr-only z-50 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
@@ -40,6 +38,7 @@ export function PublicLayout({ children, backdrop }: { children: ReactNode; back
             {children}
           </div>
           <PublicFooter />
+        </div>
         </div>
       )}
     </PublicThemeProvider>
