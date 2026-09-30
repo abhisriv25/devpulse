@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ContactLine, DocSection, DocumentPage } from "../components/PublicLayout";
+import { ContactLine, DocSection, DocumentPage, GlanceCard } from "../components/PublicLayout";
 import { EyeOffIcon, LockIcon, ServerIcon, ShieldCheckIcon } from "../components/icons";
 
 const HIGHLIGHTS = [
@@ -9,11 +9,25 @@ const HIGHLIGHTS = [
   { icon: <ServerIcon size={16} />, title: "Encrypted at rest", text: "Stored in an encrypted, private database on AWS." },
 ];
 
+const SECTIONS = [
+  { id: "what-we-collect", title: "What we collect" },
+  { id: "what-we-dont", title: "What we don't collect" },
+  { id: "how-we-use-it", title: "How we use it" },
+  { id: "cookies", title: "Cookies" },
+  { id: "where-its-stored", title: "Where it's stored" },
+  { id: "ai", title: "AI features" },
+  { id: "retention", title: "How long we keep it" },
+  { id: "your-choices", title: "Your choices" },
+  { id: "changes", title: "Changes and contact" },
+];
+
 export function PrivacyPage() {
   return (
     <DocumentPage
-      eyebrow="Privacy"
-      title="Your code stays yours"
+      eyebrow="Privacy policy"
+      title="Your code stays yours."
+      aside={<GlanceCard title="At a glance" items={HIGHLIGHTS} />}
+      sections={SECTIONS}
       intro={
         <>
           DevPulse helps teams decide which pull requests need a careful review. To do that it needs a small amount
@@ -21,20 +35,6 @@ export function PrivacyPage() {
         </>
       }
     >
-      <ul className="-mt-2 grid gap-3 sm:grid-cols-2">
-        {HIGHLIGHTS.map((h) => (
-          <li key={h.title} className="flex gap-3 rounded-xl border border-slate-200 dark:border-white/10 bg-white dark:bg-white/[0.03] p-4">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-emerald-50 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-300">
-              {h.icon}
-            </span>
-            <div>
-              <p className="text-sm font-medium text-slate-900 dark:text-white">{h.title}</p>
-              <p className="mt-0.5 text-[13px] leading-relaxed text-slate-500">{h.text}</p>
-            </div>
-          </li>
-        ))}
-      </ul>
-
       <DocSection id="what-we-collect" title="What we collect">
         <p>When you sign in with GitHub, we store:</p>
         <ul>

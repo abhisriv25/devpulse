@@ -1,12 +1,31 @@
 import { Link } from "react-router-dom";
-import { ContactLine, DocSection, DocumentPage } from "../components/PublicLayout";
+import { ContactLine, DocSection, DocumentPage, GlanceCard } from "../components/PublicLayout";
+import { AlertIcon, EyeOffIcon, LockIcon, LogOutIcon } from "../components/icons";
+
+const SECTIONS = [
+  { id: "the-service", title: "The service" },
+  { id: "your-account", title: "Your account" },
+  { id: "your-content", title: "Your content" },
+  { id: "acceptable-use", title: "Acceptable use" },
+  { id: "no-warranty", title: "Risk scores are guidance" },
+  { id: "ending", title: "Stopping and changes" },
+];
+
+const KEY_POINTS = [
+  { icon: <AlertIcon size={16} />, title: "Early-stage, as-is", text: "Features may change and the service may occasionally be down." },
+  { icon: <EyeOffIcon size={16} />, title: "Your code stays yours", text: "We only use the data described in the privacy policy." },
+  { icon: <LockIcon size={16} />, title: "Scores are guidance", text: "They help you prioritise reviews, not replace them." },
+  { icon: <LogOutIcon size={16} />, title: "Leave any time", text: "Uninstall the GitHub App and DevPulse stops immediately." },
+];
 
 export function TermsPage() {
   return (
     <DocumentPage
-      eyebrow="Terms"
-      title="Terms of use"
+      eyebrow="Terms of use"
+      title="Simple terms, plainly written."
       intro="The short version: DevPulse is an early-stage project, provided as-is. Use its risk scores to guide reviews, not to replace them."
+      aside={<GlanceCard title="The short version" items={KEY_POINTS} />}
+      sections={SECTIONS}
     >
       <DocSection id="the-service" title="The service">
         <p>
