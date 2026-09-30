@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { githubLoginUrl } from "../lib/api";
 import { SITE } from "../lib/site";
-import { CloseIcon, GithubIcon, MenuIcon, PulseMark } from "./icons";
+import { CloseIcon, GithubIcon, LogoMark, MenuIcon } from "./icons";
 import { ICON_BUTTON, ThemeToggle } from "./ThemeToggle";
 import { buttonClasses, cx } from "./ui";
 
@@ -218,9 +218,7 @@ function useActiveSection(ids: string[]) {
 function Brand() {
   return (
     <Link to="/login" className="flex items-center gap-2.5">
-      <span className="flex size-8 items-center justify-center rounded-lg bg-slate-900 text-emerald-400 ring-1 ring-inset ring-white/10 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/25">
-        <PulseMark size={18} />
-      </span>
+      <LogoMark size={32} className="shrink-0 rounded-lg shadow-[0_4px_12px_-4px_rgb(2_132_199/0.45)]" />
       <span className="text-[16px] font-semibold tracking-tight text-slate-900 dark:text-white">{SITE.name}</span>
     </Link>
   );

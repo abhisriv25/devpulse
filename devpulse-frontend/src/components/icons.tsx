@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import { useId, type SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number };
 
@@ -23,13 +23,27 @@ function StrokeIcon({ size = 16, children, ...props }: IconProps) {
   );
 }
 
-export function PulseMark({ size = 20, ...props }: IconProps) {
+/** The DevPulse logo ("Merge Pulse"): two code nodes joined by a
+ * heartbeat on a gradient tile. Keep in sync with public/favicon.svg. */
+export function LogoMark({ size = 32, ...props }: IconProps) {
+  // Unique per instance: several logos can be on one page, and SVG
+  // gradient ids are document-global.
+  const gradientId = `devpulse-logo-${useId().replace(/:/g, "")}`;
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="none" aria-hidden="true" {...props}>
+    <svg viewBox="0 0 64 64" width={size} height={size} fill="none" aria-hidden="true" {...props}>
+      <defs>
+        <linearGradient id={gradientId} x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#10b981" />
+          <stop offset="1" stopColor="#0284c7" />
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="16" fill={`url(#${gradientId})`} />
+      <circle cx="14" cy="32" r="5.5" stroke="#fff" strokeWidth="4.5" />
+      <circle cx="50" cy="32" r="5.5" stroke="#fff" strokeWidth="4.5" />
       <path
-        d="M3 12h4l2-5 4 10 2-5h6"
-        stroke="currentColor"
-        strokeWidth="2"
+        d="M19.5 32h5l4-11 7 22 4-11h5"
+        stroke="#fff"
+        strokeWidth="4.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
