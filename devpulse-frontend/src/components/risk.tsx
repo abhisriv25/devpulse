@@ -160,7 +160,11 @@ export function ScoreRing({
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           className="animate-ring-fill"
-          style={{ ["--ring-circumference" as string]: `${circumference}`, filter: `drop-shadow(0 0 6px ${meta.hex}55)` }}
+          style={{
+            ["--ring-circumference" as string]: `${circumference}`,
+            filter: `drop-shadow(0 0 6px ${meta.hex}55)`,
+            transition: "stroke-dashoffset 600ms cubic-bezier(0.16,1,0.3,1), stroke 400ms",
+          }}
         />
       </svg>
       {showLabel && (

@@ -1,4 +1,3 @@
-import type { RiskLevel } from "@prisma/client";
 import {
   DEPENDENCY_CHANGE_POINTS,
   DEPENDENCY_MANIFEST_FILENAMES,
@@ -15,6 +14,7 @@ import {
   SENSITIVE_PATH_POINTS,
   TEST_DIR_SEGMENTS,
   TEST_FILENAME_PATTERN,
+  type RiskLevel,
 } from "./risk-rules.config.js";
 
 export type RiskRuleCode =

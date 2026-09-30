@@ -23,9 +23,11 @@ function StrokeIcon({ size = 16, children, ...props }: IconProps) {
   );
 }
 
+const NODE_ORIGIN = { transformBox: "fill-box", transformOrigin: "center" } as const;
+
 /** The DevPulse logo ("Merge Pulse"): two code nodes joined by a
  * heartbeat on a gradient tile. Keep in sync with public/favicon.svg. */
-export function LogoMark({ size = 32, ...props }: IconProps) {
+export function LogoMark({ size = 32, animated = false, ...props }: IconProps & { animated?: boolean }) {
   // Unique per instance: several logos can be on one page, and SVG
   // gradient ids are document-global.
   const gradientId = `devpulse-logo-${useId().replace(/:/g, "")}`;
@@ -38,14 +40,34 @@ export function LogoMark({ size = 32, ...props }: IconProps) {
         </linearGradient>
       </defs>
       <rect width="64" height="64" rx="16" fill={`url(#${gradientId})`} />
-      <circle cx="14" cy="32" r="5.5" stroke="#fff" strokeWidth="4.5" />
-      <circle cx="50" cy="32" r="5.5" stroke="#fff" strokeWidth="4.5" />
+      {/* animated: the left node pops in, the heartbeat draws across, then the right node pops in. */}
+      <circle
+        cx="14"
+        cy="32"
+        r="5.5"
+        stroke="#fff"
+        strokeWidth="4.5"
+        className={animated ? "animate-logo-pop" : undefined}
+        style={animated ? NODE_ORIGIN : undefined}
+      />
+      <circle
+        cx="50"
+        cy="32"
+        r="5.5"
+        stroke="#fff"
+        strokeWidth="4.5"
+        className={animated ? "animate-logo-pop [animation-delay:1.05s]" : undefined}
+        style={animated ? NODE_ORIGIN : undefined}
+      />
       <path
         d="M19.5 32h5l4-11 7 22 4-11h5"
         stroke="#fff"
         strokeWidth="4.5"
         strokeLinecap="round"
         strokeLinejoin="round"
+        pathLength={1}
+        strokeDasharray={animated ? 1 : undefined}
+        className={animated ? "animate-logo-draw" : undefined}
       />
     </svg>
   );

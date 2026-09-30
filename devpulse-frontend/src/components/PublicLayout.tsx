@@ -38,6 +38,7 @@ export function PublicLayout({ children, backdrop }: { children: ReactNode; back
 
 /** In-page anchors shown in the header on the landing page only. */
 const LANDING_SECTIONS = [
+  { id: "try", label: "Try it" },
   { id: "signals", label: "Engine" },
   { id: "how-it-works", label: "How it works" },
   { id: "product", label: "Product" },
@@ -84,7 +85,7 @@ function PublicHeader() {
       )}
     >
       <div className={cx(PAGE_CONTAINER, "flex h-16 items-center justify-between gap-4")}>
-        <Brand />
+        <Brand animated={onLanding} />
 
         {onLanding && (
           <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Page sections">
@@ -215,10 +216,14 @@ function useActiveSection(ids: string[]) {
   return active;
 }
 
-function Brand() {
+function Brand({ animated = false }: { animated?: boolean }) {
   return (
     <Link to="/login" className="flex items-center gap-2.5">
-      <LogoMark size={32} className="shrink-0 rounded-lg shadow-[0_4px_12px_-4px_rgb(2_132_199/0.45)]" />
+      <LogoMark
+        size={32}
+        animated={animated}
+        className="shrink-0 rounded-lg shadow-[0_4px_12px_-4px_rgb(2_132_199/0.45)]"
+      />
       <span className="text-[16px] font-semibold tracking-tight text-slate-900 dark:text-white">{SITE.name}</span>
     </Link>
   );
@@ -228,6 +233,7 @@ const FOOTER_COLUMNS: { title: string; links: { label: string; to?: string; href
   {
     title: "Product",
     links: [
+      { label: "Try it live", href: "/login#try" },
       { label: "Risk engine", href: "/login#signals" },
       { label: "How it works", href: "/login#how-it-works" },
       { label: "Security", href: "/login#security" },

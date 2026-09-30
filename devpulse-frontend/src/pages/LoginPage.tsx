@@ -17,8 +17,10 @@ import {
   RepoIcon,
   ServerIcon,
   ShieldCheckIcon,
+  SparkleIcon,
 } from "../components/icons";
 import { GridLines, PAGE_CONTAINER, PublicLayout } from "../components/PublicLayout";
+import { ScoreLab } from "../components/ScoreLab";
 import { RISK_META, RiskBadge, ScoreComposition, ScoreRing } from "../components/risk";
 import { buttonClasses, cx } from "../components/ui";
 import { githubLoginUrl, type RiskLevel, type RiskSignal } from "../lib/api";
@@ -157,12 +159,26 @@ const TRUST = [
     title: "Versioned, traceable scores",
     text: "Each score is stamped with the engine version that produced it, so a change is always explainable.",
   },
+  {
+    icon: <GithubIcon size={20} />,
+    title: "Protected sign-in",
+    text: "GitHub sign-in and app installation are CSRF-checked and rate-limited, and sessions live in HttpOnly cookies.",
+  },
+  {
+    icon: <SparkleIcon size={20} />,
+    title: "AI reads your docs, not your code",
+    text: "When AI review launches, it will only read your repo's README and docs, and only for Medium-risk PRs and above.",
+  },
 ];
 
 const FAQS: { q: string; a: ReactNode }[] = [
   {
     q: "Does DevPulse read or store my source code?",
     a: "No source code is stored. To score a pull request, the engine only needs which files changed and how many lines were added or removed — the same summary you see at the top of a GitHub diff.",
+  },
+  {
+    q: "Do you use AI to score pull requests?",
+    a: "No, and that's on purpose. The score comes from transparent rules, so it's predictable, auditable and identical every time. AI is being added to explain risky pull requests in plain English, grounded in your own docs. It will never change the score.",
   },
   {
     q: "What access does the GitHub App need?",
@@ -195,9 +211,11 @@ export function LoginPage() {
       <main>
         <Hero oauthFailed={oauthFailed} />
         <EcosystemStrip />
+        <TryItSection />
         <SignalsSection />
         <HowItWorksSection />
         <ScoreSection />
+        <AiSection />
         <SecuritySection />
         <FaqSection />
         <FinalCta />
@@ -208,17 +226,82 @@ export function LoginPage() {
 
 /* ───────────────────────────── Hero ───────────────────────────── */
 
+const NEXT_STEPS = [
+  { title: "Sign in with GitHub", detail: "about 10 seconds" },
+  { title: "Pick repos to watch", detail: "read-only access" },
+  { title: "PRs get scored", detail: "automatically" },
+];
+
+/** Sets expectations right under the sign-in button, so nobody hesitates
+ * over what happens after they click it. */
+function WhatHappensNext() {
+  return (
+    <div className="mt-8">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">What happens next</p>
+      <ol className="mt-3 flex flex-wrap justify-center gap-x-6 gap-y-3 lg:justify-start">
+        {NEXT_STEPS.map((step, i) => (
+          <li key={step.title} className="flex items-center gap-2.5 text-left">
+            <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-slate-900 text-[11px] font-semibold text-white dark:bg-white dark:text-slate-900">
+              {i + 1}
+            </span>
+            <span>
+              <span className="block whitespace-nowrap text-[13px] font-medium leading-tight text-slate-900 dark:text-white">
+                {step.title}
+              </span>
+              <span className="block whitespace-nowrap text-[11px] text-slate-500">{step.detail}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/** Shown when GitHub sends people back with ?error=oauth_failed: the usual
+ * causes, and a one-click retry. */
+function SignInError() {
+  return (
+    <div
+      role="alert"
+      className="mx-auto mt-8 max-w-lg animate-shake rounded-2xl border border-rose-200 bg-rose-50 p-4 text-left lg:mx-0 dark:border-rose-400/20 dark:bg-rose-500/10"
+    >
+      <div className="flex items-start gap-3">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-rose-600 dark:bg-rose-500/15 dark:text-rose-300">
+          <AlertIcon size={15} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-rose-800 dark:text-rose-200">Sign-in didn't complete</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-rose-700/90 dark:text-rose-200/80">
+            This usually means the GitHub window was cancelled, or the sign-in link expired. Nothing was changed on
+            your account, so it's safe to try again.
+          </p>
+          <a
+            href={githubLoginUrl()}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-400"
+          >
+            <GithubIcon size={13} /> Try again
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Hero({ oauthFailed }: { oauthFailed: boolean }) {
   return (
     <section className={cx(PAGE_CONTAINER, "pb-16 pt-14 sm:pt-20")}>
       <div className="grid items-center gap-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16">
         <div className="animate-fade-in-up text-center lg:text-left">
-          <p className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 py-1 pl-1 pr-3 text-xs font-medium text-slate-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:shadow-none">
-            <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white dark:bg-emerald-400 dark:text-emerald-950">
-              Engine v1
+          <a
+            href="#ai"
+            className="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/80 py-1 pl-1 pr-3 text-xs font-medium text-slate-700 shadow-sm backdrop-blur transition-colors hover:border-indigo-300 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300 dark:shadow-none dark:hover:border-indigo-400/40"
+          >
+            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+              <SparkleIcon size={10} /> Coming soon
             </span>
-            Pull request risk intelligence for GitHub
-          </p>
+            AI review: rules score it, AI explains it
+            <ArrowRightIcon size={12} className="text-slate-400 transition-transform group-hover:translate-x-0.5" />
+          </a>
 
           <h1 className="mt-7 text-5xl font-semibold leading-[1.03] tracking-[-0.04em] text-slate-900 sm:text-6xl xl:text-7xl dark:text-white">
             Review what matters.{" "}
@@ -232,30 +315,16 @@ function Hero({ oauthFailed }: { oauthFailed: boolean }) {
             missing tests — so your team spends review time where it counts.
           </p>
 
-          {oauthFailed && (
-            <div
-              role="alert"
-              className="mx-auto mt-8 flex max-w-md animate-shake items-center gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2.5 text-left text-sm text-rose-700 lg:mx-0 dark:border-rose-400/20 dark:bg-rose-500/10 dark:text-rose-200"
-            >
-              <AlertIcon size={15} /> Sign-in didn't complete. Please try again.
-            </div>
-          )}
+          {oauthFailed && <SignInError />}
 
           <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start">
             <GithubCta />
-            <a href="#how-it-works" className={buttonClasses("outline", "md", "h-12 w-full px-6 text-[15px] sm:w-auto")}>
-              See how it works
+            <a href="#try" className={buttonClasses("outline", "md", "h-12 w-full px-6 text-[15px] sm:w-auto")}>
+              Try it live
             </a>
           </div>
 
-          <ul className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[13px] text-slate-500 lg:justify-start dark:text-slate-400">
-            {["Read-only access", "No code stored", "Set up in minutes"].map((item) => (
-              <li key={item} className="flex items-center gap-1.5">
-                <CheckIcon size={13} className="text-emerald-600 dark:text-emerald-400" />
-                {item}
-              </li>
-            ))}
-          </ul>
+          <WhatHappensNext />
         </div>
 
         <div className="animate-fade-in-up [animation-delay:150ms]">
@@ -436,6 +505,23 @@ function EcosystemStrip() {
   );
 }
 
+/* ───────────────────────── Try it ───────────────────────── */
+
+function TryItSection() {
+  return (
+    <Section id="try" muted>
+      <SectionHeading
+        eyebrow="Try it live"
+        title="See the engine think."
+        text="Flip the switches, or paste any public pull request. The same engine that scores connected repos runs right here in your browser. No sign-up needed."
+      />
+      <Reveal className="mt-14">
+        <ScoreLab />
+      </Reveal>
+    </Section>
+  );
+}
+
 /* ───────────────────────── Risk signals ───────────────────────── */
 
 function SignalsSection() {
@@ -446,7 +532,7 @@ function SignalsSection() {
           align="left"
           eyebrow="The engine"
           title="Six signals. One honest number."
-          text="No machine-learning guesswork. DevPulse applies a small set of transparent, documented rules that senior reviewers already check by instinct."
+          text="No machine-learning guesswork in the score. DevPulse applies a small set of transparent, documented rules that senior reviewers already check by instinct. AI comes in afterwards: to explain, never to decide."
           sticky
         >
           <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-slate-950 font-mono text-[12px] leading-relaxed shadow-lg dark:border-white/10 dark:bg-black/40 dark:shadow-none">
@@ -463,6 +549,13 @@ function SignalsSection() {
               </code>
             </pre>
           </div>
+          <a
+            href="#ai"
+            className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:underline dark:text-indigo-300"
+          >
+            <SparkleIcon size={14} /> How AI fits in
+            <ArrowRightIcon size={13} />
+          </a>
         </SectionHeading>
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -620,6 +713,188 @@ function ScoreSection() {
   );
 }
 
+/* ──────────────────────── AI (coming soon) ──────────────────────── */
+
+const SCORE_TODAY = [
+  "Six transparent, documented rules",
+  "Same pull request, same score, every time",
+  "Versioned and auditable",
+  "Instant, with no AI cost",
+];
+
+const EXPLANATION_SOON = [
+  "Reads your repo's README and docs/",
+  "Summarises the risk in plain English",
+  "Findings and recommendations that cite your docs",
+  "Only for Medium-risk pull requests and above",
+];
+
+function AiSection() {
+  return (
+    <section id="ai" className="relative scroll-mt-16 overflow-hidden border-t border-slate-200 bg-white dark:border-white/[0.08] dark:bg-transparent">
+      <div
+        className="pointer-events-none absolute left-1/2 top-0 h-[28rem] w-[56rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-200/40 blur-[120px] dark:bg-indigo-500/[0.12]"
+        aria-hidden="true"
+      />
+      <div className={cx(PAGE_CONTAINER, "relative py-20 sm:py-24")}>
+        <SectionHeading
+          eyebrow="AI review · coming soon"
+          title="Scored by rules. Explained by AI."
+          text="The score stays deterministic: predictable, auditable and identical every time. AI is being added on top to explain the why, in plain English, grounded in your team's own docs."
+        />
+
+        <div className="mt-14 grid items-start gap-6 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-10">
+          <div className="space-y-5">
+            <Reveal>
+              <Pillar title="The score" status="Live today" tone="live" icon={<ShieldCheckIcon size={18} />} items={SCORE_TODAY} />
+            </Reveal>
+            <Reveal delay={100}>
+              <Pillar title="The explanation" status="Coming soon" tone="soon" icon={<SparkleIcon size={18} />} items={EXPLANATION_SOON} />
+            </Reveal>
+          </div>
+
+          <Reveal delay={160}>
+            <AiReviewPreview />
+          </Reveal>
+        </div>
+
+        <div className="mx-auto mt-12 flex max-w-3xl flex-col items-center justify-center gap-3 text-center text-sm text-slate-600 sm:flex-row sm:gap-8 dark:text-slate-400">
+          <span className="inline-flex items-start gap-2 text-left">
+            <LockIcon size={14} className="mt-0.5 shrink-0 text-indigo-500 dark:text-indigo-300" /> AI never changes the score.
+          </span>
+          <span className="inline-flex items-start gap-2 text-left">
+            <CheckIcon size={14} className="mt-0.5 shrink-0 text-emerald-600 dark:text-emerald-400" /> Low-risk PRs skip AI entirely, so it stays fast and cheap.
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Pillar({
+  title,
+  status,
+  tone,
+  icon,
+  items,
+}: {
+  title: string;
+  status: string;
+  tone: "live" | "soon";
+  icon: ReactNode;
+  items: string[];
+}) {
+  const live = tone === "live";
+  return (
+    <div className={cx(CARD, "p-6 sm:p-7")}>
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex items-center gap-3">
+          <span
+            className={cx(
+              "flex size-10 items-center justify-center rounded-xl",
+              live
+                ? "bg-slate-900 text-emerald-400 dark:bg-emerald-400/10 dark:text-emerald-300"
+                : "bg-gradient-to-br from-indigo-500 to-violet-600 text-white",
+            )}
+          >
+            {icon}
+          </span>
+          <span className="text-lg font-semibold text-slate-900 dark:text-white">{title}</span>
+        </span>
+        <span
+          className={cx(
+            "rounded-full px-2.5 py-0.5 text-[11px] font-semibold ring-1 ring-inset",
+            live
+              ? "bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-400/10 dark:text-emerald-300 dark:ring-emerald-400/20"
+              : "bg-indigo-50 text-indigo-700 ring-indigo-600/20 dark:bg-indigo-400/10 dark:text-indigo-300 dark:ring-indigo-400/20",
+          )}
+        >
+          {status}
+        </span>
+      </div>
+      <ul className="mt-5 space-y-2.5">
+        {items.map((item) => (
+          <li key={item} className="flex items-start gap-2.5 text-[15px] text-slate-700 dark:text-slate-300">
+            <CheckIcon
+              size={14}
+              className={cx("mt-1 shrink-0", live ? "text-emerald-600 dark:text-emerald-400" : "text-indigo-500 dark:text-indigo-300")}
+            />
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** Mirrors the app's AI review card, filled with an illustrative example.
+ * Clearly labelled as a preview: the feature isn't live yet. */
+function AiReviewPreview() {
+  return (
+    <div className="relative" aria-label="Example of an AI review (preview)">
+      <div className="absolute -inset-6 -z-10 rounded-[40px] bg-gradient-to-br from-indigo-200/60 via-transparent to-violet-200/50 blur-2xl dark:from-indigo-500/15 dark:to-violet-500/15" />
+      <div className={WINDOW}>
+        <WindowChrome label="acme/api · Pull request #482" />
+        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-6 py-4 dark:border-white/10">
+          <span className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white">
+            <SparkleIcon size={15} className="text-indigo-500 dark:text-indigo-300" /> AI review
+          </span>
+          <span className="rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-700 dark:bg-indigo-400/10 dark:text-indigo-300">
+            Preview · example
+          </span>
+        </div>
+
+        <div className="space-y-5 p-6">
+          <div>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <span className="rounded-full px-2 py-0.5 text-slate-700 ring-1 ring-inset ring-slate-300 dark:text-slate-300 dark:ring-white/15">
+                medium confidence
+              </span>
+              <span>explains a score of 60 · High</span>
+            </div>
+            <p className="mt-3 text-[15px] leading-relaxed text-slate-800 dark:text-slate-200">
+              This PR rewrites how session tokens are refreshed in <code className="font-mono text-[13px]">src/auth/</code>{" "}
+              and adds a migration for a new tokens table. Your team's security guide asks for a second reviewer on any
+              auth change, and none of the changed files are tests.
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Findings</p>
+            <div className="mt-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3.5 dark:border-white/10 dark:bg-white/[0.03]">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-medium text-slate-900 dark:text-white">Refresh path skips the expiry check</p>
+                <RiskBadge level="HIGH" size="sm" />
+              </div>
+              <p className="mt-1.5 text-[13px] text-slate-600 dark:text-slate-400">
+                Tokens are re-signed on refresh without checking whether the old one has expired.
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Recommendations</p>
+            <ul className="mt-2.5 space-y-3">
+              {[
+                { action: "Request a review from the security owners", source: "docs/security.md" },
+                { action: "Add a test for expired refresh tokens", source: "docs/testing.md" },
+              ].map((r) => (
+                <li key={r.action} className="flex gap-3 text-sm">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-indigo-500" />
+                  <div>
+                    <p className="text-slate-800 dark:text-slate-200">{r.action}</p>
+                    <p className="mt-0.5 font-mono text-[11px] text-slate-500">Source: {r.source}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ──────────────────────── Security ──────────────────────── */
 
 function SecuritySection() {
@@ -631,7 +906,7 @@ function SecuritySection() {
         text="DevPulse asks for the least access it needs, and keeps even less."
       />
 
-      <div className="mt-14 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-14 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
         {TRUST.map((item, i) => (
           <Reveal key={item.title} delay={i * 70}>
             <div className={cx(CARD, "h-full p-7")}>

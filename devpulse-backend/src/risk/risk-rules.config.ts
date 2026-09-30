@@ -86,9 +86,14 @@ export const DEPENDENCY_MANIFEST_FILENAMES = new Set([
 export const TEST_DIR_SEGMENTS = new Set(["__tests__", "test", "tests"]);
 export const TEST_FILENAME_PATTERN = /\.(test|spec)\.[^.]+$/;
 
+/** Same values as the Prisma RiskLevel enum, declared here so the engine and
+ * this config have no dependencies at all — the frontend imports them to run
+ * the identical engine in the browser (landing page playground). */
+export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+
 interface LevelBucket {
   maxInclusive: number;
-  level: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  level: RiskLevel;
 }
 
 export const LEVEL_BUCKETS: LevelBucket[] = [

@@ -425,10 +425,10 @@ function AiSection({
               <SparkleIcon size={16} />
             </span>
             <div>
-              <p className="text-sm font-medium text-slate-800 dark:text-slate-200">AI review isn't switched on yet</p>
+              <p className="text-sm font-medium text-slate-800 dark:text-slate-200">Coming soon: AI review</p>
               <p className="mt-1 text-[13px] leading-relaxed text-slate-500">
-                Once enabled, DevPulse reads your repo's docs and explains <em>why</em> this change is risky, with
-                recommendations grounded in your own conventions. The deterministic score above doesn't depend on it.
+                A plain-English explanation of this score, grounded in your repo's README and docs, with findings and
+                recommendations that cite their source. AI never changes the score above.
               </p>
             </div>
           </div>
