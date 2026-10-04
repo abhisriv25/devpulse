@@ -1,5 +1,7 @@
 import { env } from "../env.js";
 
+const MAX_OUTPUT_TOKENS = 1200;
+
 export class LlmNotConfiguredError extends Error {}
 export class LlmResponseError extends Error {}
 
@@ -20,6 +22,8 @@ export async function generateChatCompletion(params: {
         { role: "user", content: params.user },
       ],
       response_format: { type: "json_object" },
+      // Cost guard: bounds output spend per analysis.
+      max_tokens: MAX_OUTPUT_TOKENS,
     }),
   });
   if (!res.ok) throw new Error(`LLM request failed (status ${res.status})`);

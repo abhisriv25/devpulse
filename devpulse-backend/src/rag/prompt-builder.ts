@@ -64,12 +64,17 @@ export function buildUserPrompt(input: PromptInput): string {
           )
           .join("\n\n");
 
+  // Cost guard: PR descriptions are unbounded user text, so cap what goes into the prompt.
+  const MAX_BODY_CHARS = 4000;
+  const truncateBody = (body: string | null) =>
+    !body ? "(none)" : body.length > MAX_BODY_CHARS ? `${body.slice(0, MAX_BODY_CHARS)}\n[truncated]` : body;
+
   return [
     `Deterministic risk score: ${input.score}/100 (${input.level})`,
     `Branches: ${input.headBranch} -> ${input.baseBranch}`,
     `Diff: +${input.additions} -${input.deletions} across ${input.changedFilesCount} files`,
     `Triggered risk signals:\n${signals}`,
-    untrusted("pull request", `Title: ${input.title}\n\nDescription:\n${input.body ?? "(none)"}`),
+    untrusted("pull request", `Title: ${input.title}\n\nDescription:\n${truncateBody(input.body)}`),
     `Relevant engineering memory:\n${memory}`,
   ].join("\n\n");
 }
