@@ -10,20 +10,22 @@ export class RepositoryNotFoundError extends Error {}
 
 export interface IngestionResult {
   path: string;
-  status: "ingested" | "skipped_unchanged" | "failed";
+  status: "ingested" | "skipped_unchanged" | "removed" | "failed";
   chunks?: number;
   error?: string;
 }
 
 /** Fetches a repo's README.md + docs/**\/*.md, and stores each changed file
- * as a Document with heading-based chunks. One bad file doesn't sink the batch. */
+ * as a Document with heading-based chunks. One bad file doesn't sink the batch.
+ * Documents whose file is gone from the repo are removed (their chunks
+ * cascade), so retrieval can't cite a deleted doc. */
 export async function ingestRepositoryDocs(repositoryId: string): Promise<IngestionResult[]> {
   const repository = await prisma.repository.findUnique({ where: { id: repositoryId } });
   if (!repository) throw new RepositoryNotFoundError(`Repository ${repositoryId} not found`);
 
   const token = await fetchInstallationAccessToken(repository.githubInstallationId);
   const branch = await fetchDefaultBranch(token, repository.owner, repository.name);
-  const paths = await listMarkdownFilePaths(token, repository.owner, repository.name, branch);
+  const { paths, truncated } = await listMarkdownFilePaths(token, repository.owner, repository.name, branch);
 
   const source = await prisma.knowledgeSource.upsert({
     where: {
@@ -83,6 +85,19 @@ export async function ingestRepositoryDocs(repositoryId: string): Promise<Ingest
     } catch (err) {
       results.push({ path, status: "failed", error: err instanceof Error ? err.message : String(err) });
     }
+  }
+
+  // A truncated tree can omit files that still exist, so only prune
+  // against a complete listing.
+  if (truncated) return results;
+
+  const stale = await prisma.document.findMany({
+    where: { knowledgeSourceId: source.id, path: { notIn: paths } },
+    select: { id: true, path: true },
+  });
+  if (stale.length > 0) {
+    await prisma.document.deleteMany({ where: { id: { in: stale.map((d) => d.id) } } });
+    for (const doc of stale) results.push({ path: doc.path, status: "removed" });
   }
 
   return results;

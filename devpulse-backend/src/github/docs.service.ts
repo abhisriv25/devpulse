@@ -29,20 +29,24 @@ export function isDocPath(path: string): boolean {
   return lower === "readme.md" || (lower.startsWith("docs/") && lower.endsWith(".md"));
 }
 
-/** README.md plus every Markdown file under docs/. Note: GitHub truncates
- * the recursive tree for very large repos; that case isn't handled. */
+/** README.md plus every Markdown file under docs/. GitHub truncates the
+ * recursive tree for very large repos; `truncated` reports that, so callers
+ * know the list may be missing files that do exist. */
 export async function listMarkdownFilePaths(
   token: string,
   owner: string,
   repo: string,
   branch: string,
-): Promise<string[]> {
-  const body = await githubGet<{ tree: { path: string; type: string }[] }>(
+): Promise<{ paths: string[]; truncated: boolean }> {
+  const body = await githubGet<{ tree: { path: string; type: string }[]; truncated?: boolean }>(
     `${repoUrl(owner, repo)}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
     token,
     "repository tree",
   );
-  return body.tree.filter((e) => e.type === "blob" && isDocPath(e.path)).map((e) => e.path);
+  return {
+    paths: body.tree.filter((e) => e.type === "blob" && isDocPath(e.path)).map((e) => e.path),
+    truncated: body.truncated === true,
+  };
 }
 
 export async function fetchFileContent(

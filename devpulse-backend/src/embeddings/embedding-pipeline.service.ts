@@ -37,3 +37,16 @@ export async function embedPendingChunks(limit = DEFAULT_EMBED_BATCH): Promise<E
   }
   return { embedded, failed };
 }
+
+/** Runs batches until nothing is left to embed. Stops on a batch that makes
+ * no progress, since chunks that failed stay pending and would come back
+ * forever; `failed` is what that final batch couldn't embed. */
+export async function embedAllPendingChunks(batchSize = DEFAULT_EMBED_BATCH): Promise<EmbeddingRunResult> {
+  let embedded = 0;
+  for (;;) {
+    const run = await embedPendingChunks(batchSize);
+    embedded += run.embedded;
+    const lastBatch = run.embedded + run.failed < batchSize;
+    if (run.embedded === 0 || (lastBatch && run.failed === 0)) return { embedded, failed: run.failed };
+  }
+}

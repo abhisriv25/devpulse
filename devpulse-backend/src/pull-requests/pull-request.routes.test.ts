@@ -33,7 +33,7 @@ vi.mock("../risk/risk-assessment.service.js", async (importOriginal) => {
 
 const { app } = await import("../app.js");
 const { GithubAppError } = await import("../github/github-app-auth.service.js");
-const { LlmNotConfiguredError } = await import("../rag/llm-client.js");
+const { LlmNotConfiguredError, LlmTimeoutError } = await import("../rag/llm-client.js");
 
 const REPO = { id: "repo-1", owner: "octo", name: "app", fullName: "octo/app", organizationId: "org-1" };
 const PR = {
@@ -242,6 +242,13 @@ describe("GET /pull-requests/:id/intelligence", () => {
     const agent = await loginAgent();
 
     expect((await agent.get("/pull-requests/pr-1/intelligence")).status).toBe(503);
+  });
+
+  it("returns 504 when the model times out", async () => {
+    getOrCreatePrIntelligenceMock.mockRejectedValueOnce(new LlmTimeoutError("timed out"));
+    const agent = await loginAgent();
+
+    expect((await agent.get("/pull-requests/pr-1/intelligence")).status).toBe(504);
   });
 
   it("returns 502 on a generation failure", async () => {

@@ -1,4 +1,4 @@
-import { embedPendingChunks } from "../embeddings/embedding-pipeline.service.js";
+import { embedAllPendingChunks } from "../embeddings/embedding-pipeline.service.js";
 import { prisma } from "../prisma.js";
 import { ingestRepositoryDocs } from "./document-ingestion.service.js";
 
@@ -13,5 +13,5 @@ for (const repo of repositories) {
   console.table(await ingestRepositoryDocs(repo.id));
 }
 
-console.log("Embedding pending chunks:", await embedPendingChunks());
+console.log("Embedding pending chunks:", await embedAllPendingChunks());
 await prisma.$disconnect();

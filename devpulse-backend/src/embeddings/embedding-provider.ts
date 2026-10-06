@@ -1,5 +1,7 @@
 import { env } from "../env.js";
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 export class EmbeddingNotConfiguredError extends Error {}
 
 export interface EmbeddingBatch {
@@ -18,6 +20,8 @@ export async function embedTexts(texts: string[]): Promise<EmbeddingBatch> {
     method: "POST",
     headers: { Authorization: `Bearer ${env.EMBEDDING_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ model: env.EMBEDDING_MODEL, input: texts }),
+    // Retrieval runs inside a page request, so a hung upstream must not stall it.
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) throw new Error(`Embedding request failed (status ${res.status})`);
 

@@ -5,7 +5,7 @@ import { requireAuth } from "../auth/auth.routes.js";
 import { GithubAppError } from "../github/github-app-auth.service.js";
 import { logger } from "../logger.js";
 import { prisma } from "../prisma.js";
-import { LlmNotConfiguredError } from "../rag/llm-client.js";
+import { LlmNotConfiguredError, LlmTimeoutError } from "../rag/llm-client.js";
 import { getOrCreatePrIntelligence } from "../rag/pr-intelligence.service.js";
 import { getOrCreateLatestRiskAssessment } from "../risk/risk-assessment.service.js";
 
@@ -150,7 +150,8 @@ pullRequestRouter.get("/pull-requests/:id/risk", requireAuth, async (req, res) =
 
 /** LOW-risk PRs are skipped by design (no LLM cost). Otherwise returns the
  * stored AI analysis for the current assessment, generating it on first view.
- * 503 when no LLM is configured; 502 on an upstream/model failure. */
+ * 503 when no LLM is configured; 504 when the model times out; 502 on any
+ * other upstream/model failure. */
 pullRequestRouter.get("/pull-requests/:id/intelligence", requireAuth, async (req, res) => {
   const pullRequest = await findOwnedPullRequest(req, res);
   if (!pullRequest) return;
@@ -168,6 +169,11 @@ pullRequestRouter.get("/pull-requests/:id/intelligence", requireAuth, async (req
   } catch (err) {
     if (err instanceof LlmNotConfiguredError) {
       res.status(503).json({ error: { message: "AI analysis isn't configured" } });
+      return;
+    }
+    if (err instanceof LlmTimeoutError) {
+      logger.warn({ err, pullRequestId: pullRequest.id }, "PR intelligence generation timed out");
+      res.status(504).json({ error: { message: "AI analysis timed out" } });
       return;
     }
     if (err instanceof GithubAppError) {

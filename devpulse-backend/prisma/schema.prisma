@@ -268,6 +268,8 @@ model PRAnalysis {
   pullRequest    PullRequest    @relation(fields: [pullRequestId], references: [id], onDelete: Cascade)
   riskAssessment RiskAssessment @relation(fields: [riskAssessmentId], references: [id], onDelete: Cascade)
 
+  // One analysis per assessment: concurrent first views can't store two.
+  @@unique([pullRequestId, riskAssessmentId])
   @@index([pullRequestId, createdAt])
 }
 
