@@ -1,0 +1,68 @@
+# Tests the backend on every push to main and, when they pass, deploys it
+# to the EC2 host with devpulse-backend/deploy/deploy.sh. The frontend is
+# deployed by Vercel's own GitHub integration, not by this workflow.
+#
+# AWS access is keyless (GitHub OIDC): set the repository variable
+# AWS_DEPLOY_ROLE_ARN to the role created by deploy/setup-github-deploy.sh.
+# Until it is set, the deploy job is skipped and only the tests run.
+name: Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "devpulse-backend/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+# Never run two deploys at once; a newer push waits for the current one.
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --workspace=devpulse-backend --include-workspace-root=false
+      - run: npx prisma generate
+        working-directory: devpulse-backend
+      - run: npx tsc --noEmit -p tsconfig.json
+        working-directory: devpulse-backend
+      - run: npm test
+        working-directory: devpulse-backend
+
+  deploy:
+    needs: test
+    if: vars.AWS_DEPLOY_ROLE_ARN != ''
+    # The EC2 host is arm64; building on an arm64 runner avoids emulation.
+    runs-on: ubuntu-24.04-arm
+    environment: production
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+      # The arm64 runner image may not ship the AWS CLI.
+      - name: Ensure AWS CLI
+        run: |
+          if ! command -v aws >/dev/null; then
+            curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip -o /tmp/awscli.zip
+            unzip -q /tmp/awscli.zip -d /tmp && sudo /tmp/aws/install
+          fi
+          aws --version
+      - run: devpulse-backend/deploy/deploy.sh

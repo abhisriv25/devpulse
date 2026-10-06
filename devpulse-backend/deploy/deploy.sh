@@ -6,6 +6,8 @@
 # Production settings live in devpulse-backend/.env.production (gitignored).
 # Each run uploads that file to SSM Parameter Store (encrypted), and the
 # host reads it from there — secrets never go into the image or the repo.
+# In CI (GitHub Actions sets CI=true) there is no such file, so the settings
+# already stored in SSM are used as they are.
 set -euo pipefail
 
 REGION=us-east-1
@@ -21,14 +23,16 @@ ENV_FILE="$REPO_ROOT/devpulse-backend/.env.production"
 TAG="$(git -C "$REPO_ROOT" rev-parse --short HEAD)-$(date +%Y%m%d%H%M%S)"
 IMAGE="$REGISTRY/devpulse-backend:$TAG"
 
-if [[ ! -f "$ENV_FILE" ]]; then
+if [[ -f "$ENV_FILE" ]]; then
+  echo "==> Uploading production settings to SSM ($ENV_PARAM)"
+  aws ssm put-parameter --region "$REGION" --name "$ENV_PARAM" --type SecureString \
+    --value "file://$ENV_FILE" --overwrite >/dev/null
+elif [[ "${CI:-}" == "true" ]]; then
+  echo "==> Using the production settings already in SSM ($ENV_PARAM)"
+else
   echo "Missing $ENV_FILE — create it first (see .env.example)." >&2
   exit 1
 fi
-
-echo "==> Uploading production settings to SSM ($ENV_PARAM)"
-aws ssm put-parameter --region "$REGION" --name "$ENV_PARAM" --type SecureString \
-  --value "file://$ENV_FILE" --overwrite >/dev/null
 
 echo "==> Building $IMAGE (linux/arm64)"
 aws ecr get-login-password --region "$REGION" |
@@ -57,9 +61,18 @@ aws ecr get-login-password --region $REGION | docker login --username AWS --pass
 docker compose pull -q
 docker compose up -d --remove-orphans
 docker image prune -af >/dev/null
-sleep 15
+# Migrations run before the API listens, so give it up to ~2 minutes.
+for attempt in \$(seq 1 24); do
+  if curl -fsS --resolve "$API_DOMAIN:443:127.0.0.1" "https://$API_DOMAIN/ready"; then
+    docker compose ps
+    exit 0
+  fi
+  sleep 5
+done
 docker compose ps
-curl -fsS --resolve "$API_DOMAIN:443:127.0.0.1" "https://$API_DOMAIN/ready" || docker compose logs --tail 40 api
+docker compose logs --tail 60 api
+echo "API never became ready" >&2
+exit 1
 EOF
 )
 
@@ -68,10 +81,14 @@ COMMAND_ID=$(aws ssm send-command --region "$REGION" --instance-ids "$INSTANCE_I
   --parameters "$(python3 -c 'import json,sys; print(json.dumps({"commands": [sys.stdin.read()]}))' <<<"$REMOTE_SCRIPT")" \
   --query Command.CommandId --output text)
 
-aws ssm wait command-executed --region "$REGION" --command-id "$COMMAND_ID" \
-  --instance-id "$INSTANCE_ID" || true
-STATUS=$(aws ssm get-command-invocation --region "$REGION" --command-id "$COMMAND_ID" \
-  --instance-id "$INSTANCE_ID" --query Status --output text)
+# Poll rather than `aws ssm wait`, whose ~100s limit a slow pull or
+# migration can outlast, reporting a good deploy as failed.
+for _ in $(seq 1 120); do
+  sleep 5
+  STATUS=$(aws ssm get-command-invocation --region "$REGION" --command-id "$COMMAND_ID" \
+    --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null || echo Pending)
+  case "$STATUS" in Pending|InProgress|Delayed) ;; *) break ;; esac
+done
 aws ssm get-command-invocation --region "$REGION" --command-id "$COMMAND_ID" \
   --instance-id "$INSTANCE_ID" --query '[StandardOutputContent, StandardErrorContent]' \
   --output text

@@ -537,6 +537,35 @@ MEDIUM/HIGH/CRITICAL PR and the "AI context" section generates and persists a
 `RiskAssessment` — reload the page and it's instant, since `getOrCreatePrIntelligence`
 reused the persisted row instead of calling the LLM again.
 
+## Deploying
+
+Pushing to `main` deploys automatically:
+
+- **Frontend** — Vercel's GitHub integration builds `devpulse-frontend/` and
+  publishes it (project settings: Root Directory `devpulse-frontend`,
+  Production Branch `main`).
+- **Backend** — `.github/workflows/deploy-backend.yml` runs the backend's
+  typecheck and tests, and only if they pass runs
+  `devpulse-backend/deploy/deploy.sh` on an arm64 runner: build the image,
+  push it to ECR, roll it out on the EC2 host over SSM, and fail unless `/ready`
+  answers. Migrations run when the new container starts. It runs only when
+  backend files change; run it by hand from the Actions tab
+  (**Backend → Run workflow**).
+
+The workflow holds no AWS keys; it assumes an IAM role through GitHub OIDC.
+One-time setup:
+
+1. In AWS CloudShell (us-east-1), run `devpulse-backend/deploy/setup-github-deploy.sh`.
+   It creates the OIDC provider and a role only this repo's `production`
+   environment can assume, then prints the role ARN.
+2. In GitHub → Settings → Secrets and variables → Actions → **Variables**, add
+   `AWS_DEPLOY_ROLE_ARN` with that ARN.
+
+Until step 2 is done, the deploy job is skipped and only the tests run.
+Production settings stay in SSM (`/devpulse/backend-env`); to change them, edit
+`devpulse-backend/.env.production` and run `deploy.sh` locally, which uploads
+the file before deploying.
+
 ## Running the tests
 
 ```bash
