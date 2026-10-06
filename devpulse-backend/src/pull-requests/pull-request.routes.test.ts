@@ -11,8 +11,10 @@ const prismaMock = {
 };
 
 const assessPullRequestMock = vi.fn();
+const getOrCreatePrIntelligenceMock = vi.fn();
 
 vi.mock("../prisma.js", () => ({ prisma: prismaMock }));
+vi.mock("../rag/pr-intelligence.service.js", () => ({ getOrCreatePrIntelligence: getOrCreatePrIntelligenceMock }));
 vi.mock("../risk/risk-assessment.service.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../risk/risk-assessment.service.js")>();
   return {
@@ -31,6 +33,7 @@ vi.mock("../risk/risk-assessment.service.js", async (importOriginal) => {
 
 const { app } = await import("../app.js");
 const { GithubAppError } = await import("../github/github-app-auth.service.js");
+const { LlmNotConfiguredError, LlmTimeoutError } = await import("../rag/llm-client.js");
 
 const REPO = { id: "repo-1", owner: "octo", name: "app", fullName: "octo/app", organizationId: "org-1" };
 const PR = {
@@ -212,41 +215,46 @@ describe("GET /pull-requests/:id/risk", () => {
 });
 
 describe("GET /pull-requests/:id/intelligence", () => {
-  it("skips LOW-risk PRs", async () => {
-    prismaMock.riskAssessment.findFirst.mockResolvedValueOnce(assessment({ score: 5, level: "LOW" }));
+  it("passes a LOW-risk skip through", async () => {
+    getOrCreatePrIntelligenceMock.mockResolvedValueOnce({ status: "skipped_low_risk", score: 5, level: "LOW" });
     const agent = await loginAgent();
 
     const res = await agent.get("/pull-requests/pr-1/intelligence");
 
     expect(res.body).toEqual({ status: "skipped_low_risk", score: 5, level: "LOW" });
-    expect(prismaMock.pRAnalysis.findFirst).not.toHaveBeenCalled();
   });
 
-  it("returns the stored analysis for the current assessment", async () => {
-    prismaMock.riskAssessment.findFirst.mockResolvedValueOnce(assessment());
-    prismaMock.pRAnalysis.findFirst.mockResolvedValueOnce({
-      id: "analysis-1",
-      riskAssessmentId: "risk-1",
-      summary: "Touches auth",
-      createdAt: new Date("2026-09-03T01:00:00Z"),
+  it("returns the analysis", async () => {
+    getOrCreatePrIntelligenceMock.mockResolvedValueOnce({
+      status: "analyzed",
+      analysis: { id: "analysis-1", summary: "Touches auth", createdAt: new Date("2026-09-03T01:00:00Z") },
     });
     const agent = await loginAgent();
 
     const res = await agent.get("/pull-requests/pr-1/intelligence");
 
     expect(res.body).toMatchObject({ status: "analyzed", intelligence: { id: "analysis-1", summary: "Touches auth" } });
-    expect(prismaMock.pRAnalysis.findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { riskAssessmentId: "risk-1" } }),
-    );
+    expect(getOrCreatePrIntelligenceMock).toHaveBeenCalledWith("pr-1");
   });
 
-  it("returns 503 when no analysis exists yet", async () => {
-    prismaMock.riskAssessment.findFirst.mockResolvedValueOnce(assessment());
-    prismaMock.pRAnalysis.findFirst.mockResolvedValueOnce(null);
+  it("returns 503 when the LLM isn't configured", async () => {
+    getOrCreatePrIntelligenceMock.mockRejectedValueOnce(new LlmNotConfiguredError("no key"));
     const agent = await loginAgent();
 
-    const res = await agent.get("/pull-requests/pr-1/intelligence");
+    expect((await agent.get("/pull-requests/pr-1/intelligence")).status).toBe(503);
+  });
 
-    expect(res.status).toBe(503);
+  it("returns 504 when the model times out", async () => {
+    getOrCreatePrIntelligenceMock.mockRejectedValueOnce(new LlmTimeoutError("timed out"));
+    const agent = await loginAgent();
+
+    expect((await agent.get("/pull-requests/pr-1/intelligence")).status).toBe(504);
+  });
+
+  it("returns 502 on a generation failure", async () => {
+    getOrCreatePrIntelligenceMock.mockRejectedValueOnce(new Error("boom"));
+    const agent = await loginAgent();
+
+    expect((await agent.get("/pull-requests/pr-1/intelligence")).status).toBe(502);
   });
 });

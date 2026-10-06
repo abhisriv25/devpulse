@@ -3,7 +3,10 @@ import type { Prisma, PullRequest, Repository, RiskAssessment } from "@prisma/cl
 import { resolvePrimaryOrganizationId } from "../auth/auth.service.js";
 import { requireAuth } from "../auth/auth.routes.js";
 import { GithubAppError } from "../github/github-app-auth.service.js";
+import { logger } from "../logger.js";
 import { prisma } from "../prisma.js";
+import { LlmNotConfiguredError, LlmTimeoutError } from "../rag/llm-client.js";
+import { getOrCreatePrIntelligence } from "../rag/pr-intelligence.service.js";
 import { getOrCreateLatestRiskAssessment } from "../risk/risk-assessment.service.js";
 
 export const pullRequestRouter = Router();
@@ -145,33 +148,39 @@ pullRequestRouter.get("/pull-requests/:id/risk", requireAuth, async (req, res) =
   res.json(riskAssessmentResponse(assessment));
 });
 
-/** LOW-risk PRs are skipped by design (no LLM cost). For anything higher,
- * serves the stored AI analysis for the current risk assessment; the
- * pipeline that generates those analyses isn't in this codebase yet, so
- * without one this reports 503 rather than inventing a result. */
+/** LOW-risk PRs are skipped by design (no LLM cost). Otherwise returns the
+ * stored AI analysis for the current assessment, generating it on first view.
+ * 503 when no LLM is configured; 504 when the model times out; 502 on any
+ * other upstream/model failure. */
 pullRequestRouter.get("/pull-requests/:id/intelligence", requireAuth, async (req, res) => {
   const pullRequest = await findOwnedPullRequest(req, res);
   if (!pullRequest) return;
 
-  const assessment = await loadRiskAssessment(pullRequest.id, res);
-  if (!assessment) return;
-
-  if (assessment.level === "LOW") {
-    res.json({ status: "skipped_low_risk", score: assessment.score, level: assessment.level });
-    return;
+  try {
+    const result = await getOrCreatePrIntelligence(pullRequest.id);
+    if (result.status === "skipped_low_risk") {
+      res.json(result);
+      return;
+    }
+    res.json({
+      status: "analyzed",
+      intelligence: { ...result.analysis, createdAt: result.analysis.createdAt.toISOString() },
+    });
+  } catch (err) {
+    if (err instanceof LlmNotConfiguredError) {
+      res.status(503).json({ error: { message: "AI analysis isn't configured" } });
+      return;
+    }
+    if (err instanceof LlmTimeoutError) {
+      logger.warn({ err, pullRequestId: pullRequest.id }, "PR intelligence generation timed out");
+      res.status(504).json({ error: { message: "AI analysis timed out" } });
+      return;
+    }
+    if (err instanceof GithubAppError) {
+      res.status(502).json({ error: { message: "Couldn't fetch this pull request from GitHub" } });
+      return;
+    }
+    logger.error({ err, pullRequestId: pullRequest.id }, "PR intelligence generation failed");
+    res.status(502).json({ error: { message: "AI analysis failed" } });
   }
-
-  const analysis = await prisma.pRAnalysis.findFirst({
-    where: { riskAssessmentId: assessment.id },
-    orderBy: { createdAt: "desc" },
-  });
-  if (!analysis) {
-    res.status(503).json({ error: { message: "AI analysis isn't available for this pull request yet" } });
-    return;
-  }
-
-  res.json({
-    status: "analyzed",
-    intelligence: { ...analysis, createdAt: analysis.createdAt.toISOString() },
-  });
 });

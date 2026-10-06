@@ -18,6 +18,15 @@ const envSchema = z.object({
   GITHUB_APP_PRIVATE_KEY: z.string().min(1, "GITHUB_APP_PRIVATE_KEY is required"),
   GITHUB_WEBHOOK_SECRET: z.string().min(1, "GITHUB_WEBHOOK_SECRET is required"),
 
+  EMBEDDING_API_KEY: z.string().optional(),
+  EMBEDDING_MODEL: z.string().min(1).default("text-embedding-3-small"),
+  EMBEDDING_API_BASE_URL: z.string().url().default("https://api.openai.com/v1"),
+
+  LLM_API_KEY: z.string().optional(),
+  LLM_API_BASE_URL: z.string().url().default("https://api.openai.com/v1"),
+  LLM_MODEL_SMALL: z.string().min(1).default("gpt-4o-mini"),
+  LLM_MODEL_STRONG: z.string().min(1).default("gpt-4o"),
+
   API_BASE_URL: z.string().url().default("http://localhost:3000"),
   WEB_BASE_URL: z.string().url().default("http://localhost:5173"),
 });
