@@ -1,4 +1,7 @@
 process.env.NODE_ENV = "test";
+// Keep tests hermetic: src/env.ts runs dotenv/config, which would otherwise
+// load a developer's real .env (live Redis, OpenAI key, ...) over these defaults.
+process.env.DOTENV_CONFIG_PATH = "nonexistent.env";
 process.env.DATABASE_URL ??= "postgresql://test:test@localhost:5432/test";
 process.env.SESSION_SECRET ??= "test-session-secret-not-for-real-use";
 process.env.GITHUB_OAUTH_CLIENT_ID ??= "test-client-id";
