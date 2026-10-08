@@ -1,0 +1,40 @@
+# Typechecks and tests the backend on every push and pull request. Deploys
+# are not done here: Railway builds and deploys main itself (see railway.json),
+# and the frontend is deployed by Vercel's own GitHub integration.
+name: Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "devpulse-backend/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/backend-tests.yml"
+  pull_request:
+    paths:
+      - "devpulse-backend/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/backend-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --workspace=devpulse-backend --include-workspace-root=false
+      - run: npx prisma generate
+        working-directory: devpulse-backend
+      - run: npx tsc --noEmit -p tsconfig.json
+        working-directory: devpulse-backend
+      - run: npm test
+        working-directory: devpulse-backend

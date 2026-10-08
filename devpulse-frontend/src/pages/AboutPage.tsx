@@ -71,7 +71,7 @@ const STACK: { group: string; items: string[] }[] = [
   { group: "Frontend", items: ["React", "TypeScript", "Tailwind CSS", "React Query", "Vite"] },
   { group: "Backend", items: ["Node.js", "Express", "Prisma", "Vitest"] },
   { group: "Data", items: ["PostgreSQL", "pgvector", "Redis"] },
-  { group: "Infrastructure", items: ["AWS", "Vercel", "GitHub App", "Docker"] },
+  { group: "Infrastructure", items: ["Railway", "Vercel", "GitHub App", "Docker"] },
 ];
 
 const LINKS: { key: keyof CreatorLinks; label: string; icon: ReactNode }[] = [

@@ -17,8 +17,8 @@ import { webhookRouter } from "./webhooks/webhook.routes.js";
 
 export const app = express();
 
-// In production the API sits behind a TLS-terminating proxy (Caddy, and
-// Vercel's /api rewrite in front of that); trust it so req.secure is true
+// In production the API sits behind a TLS-terminating proxy (Railway's edge,
+// and Vercel's /api rewrite in front of that); trust it so req.secure is true
 // and the secure session cookie actually gets set.
 if (isProduction) app.set("trust proxy", true);
 
