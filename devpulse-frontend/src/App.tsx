@@ -8,6 +8,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { RepositoriesPage } from "./pages/RepositoriesPage";
 import { PullRequestsPage } from "./pages/PullRequestsPage";
 import { PullRequestDetailPage } from "./pages/PullRequestDetailPage";
+import { WelcomePage } from "./pages/WelcomePage";
 import { ProtectedRoute } from "./lib/ProtectedRoute";
 import { ThemeProvider } from "./lib/theme";
 
@@ -28,6 +29,14 @@ export function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route
+          path="/welcome"
+          element={
+            <ProtectedRoute withoutOrganization>
+              <WelcomePage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/" element={protect(<DashboardPage />)} />
         <Route path="/pulls" element={protect(<PullRequestsPage />)} />
         <Route path="/pulls/:pullId" element={protect(<PullRequestDetailPage />)} />

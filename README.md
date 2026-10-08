@@ -68,7 +68,7 @@ exists to avoid.
 - Real GitHub OAuth (not a mocked login) — authorize → callback → token exchange → profile fetch
 - CSRF protection on the OAuth callback via signed session state (tested — see `devpulse-backend/src/auth/auth.routes.test.ts`)
 - Redis-backed sessions (HttpOnly, Secure-in-prod, SameSite=Lax cookie)
-- First-login bootstrapping: a personal Organization + ADMIN Membership created automatically, since every later feature is org-scoped
+- Organizations are created deliberately, not on sign-in: a signed-in user with no membership lands on `/welcome`, names their organization, and becomes its ADMIN (`POST /organizations`); every later feature is org-scoped
 - A validated, fail-fast environment config (missing env vars crash on boot with a clear message, not a mysterious runtime error later)
 - Structured JSON request logging (pino) — every request line is queryable by `requestId`
 - `/health` (process alive) and `/ready` (Redis reachable) endpoints
@@ -464,8 +464,9 @@ npm run dev:api   # http://localhost:3000
 npm run dev:web   # http://localhost:5173
 ```
 
-Open `http://localhost:5173`, click "Sign in with GitHub," and you should land
-on a dashboard showing your GitHub login and your auto-created organization.
+Open `http://localhost:5173`, click "Sign in with GitHub," name your
+organization on the welcome screen, and you should land on a dashboard showing
+your GitHub login and that organization.
 From there, click "Manage repositories" → "Connect repository" to install the
 GitHub App and pick which repos to connect — they'll show up on
 `/repositories` once the install redirects back.
