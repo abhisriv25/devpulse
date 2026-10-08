@@ -54,6 +54,104 @@ export function createOrganization(name: string): Promise<Organization> {
   return apiFetch<Organization>("/organizations", { method: "POST", body: JSON.stringify({ name }) });
 }
 
+export interface OrganizationDetails extends Organization {
+  /** The GitHub account the organization is tied to — invitees must belong to it. */
+  github: { login: string; type: "Organization" | "User" | string } | null;
+  /** Whether invitations go out by email, or the admin shares the link. */
+  emailEnabled: boolean;
+}
+
+export function fetchCurrentOrganization(): Promise<OrganizationDetails> {
+  return apiFetch<OrganizationDetails>("/organizations/current");
+}
+
+export type GithubMembershipStatus = "member" | "not_member" | "unknown";
+
+export interface Member {
+  id: string;
+  role: "ADMIN" | "MEMBER";
+  joinedAt: string;
+  user: {
+    id: string;
+    githubLogin: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+    lastActiveAt: string | null;
+  };
+  invitedEmail: string | null;
+  invitedBy: string | null;
+  githubStatus: GithubMembershipStatus;
+}
+
+export function fetchMembers(): Promise<{ members: Member[] }> {
+  return apiFetch<{ members: Member[] }>("/organizations/current/members");
+}
+
+export function changeMemberRole(membershipId: string, role: Member["role"]): Promise<{ id: string; role: Member["role"] }> {
+  return apiFetch(`/organizations/current/members/${membershipId}`, { method: "PATCH", body: JSON.stringify({ role }) });
+}
+
+export function removeMember(membershipId: string): Promise<void> {
+  return apiFetch<void>(`/organizations/current/members/${membershipId}`, { method: "DELETE" });
+}
+
+export type InvitationStatus = "pending" | "expired" | "accepted" | "revoked";
+
+export interface PendingInvitation {
+  id: string;
+  email: string;
+  invitedBy: string | null;
+  createdAt: string;
+  expiresAt: string;
+  status: InvitationStatus;
+}
+
+/** A just-issued invitation. `url` is only ever available here — the server
+ * keeps a hash, not the link — so the UI must show it now or never. */
+export interface IssuedInvitation {
+  id: string;
+  email: string;
+  expiresAt: string;
+  url: string;
+  emailSent: boolean;
+}
+
+export function fetchInvitations(): Promise<{ invitations: PendingInvitation[] }> {
+  return apiFetch<{ invitations: PendingInvitation[] }>("/organizations/current/invitations");
+}
+
+export function createInvitations(emails: string[]): Promise<{ invitations: IssuedInvitation[] }> {
+  return apiFetch("/organizations/current/invitations", { method: "POST", body: JSON.stringify({ emails }) });
+}
+
+export function resendInvitation(invitationId: string): Promise<{ invitation: IssuedInvitation }> {
+  return apiFetch(`/organizations/current/invitations/${invitationId}/resend`, { method: "POST" });
+}
+
+export function revokeInvitation(invitationId: string): Promise<void> {
+  return apiFetch<void>(`/organizations/current/invitations/${invitationId}`, { method: "DELETE" });
+}
+
+export interface InvitationPreview {
+  organizationName: string;
+  githubAccountLogin: string | null;
+  githubAccountType: string | null;
+  invitedBy: string | null;
+  email: string;
+  expiresAt: string;
+  status: InvitationStatus;
+}
+
+export function fetchInvitationPreview(token: string): Promise<InvitationPreview> {
+  return apiFetch<InvitationPreview>(`/invitations/${encodeURIComponent(token)}`);
+}
+
+/** Sign in with GitHub from an invite link — the API accepts the
+ * invitation as soon as GitHub confirms who this is. */
+export function githubLoginUrlForInvite(token: string): string {
+  return `${API_BASE_URL}/auth/github/login?invite=${encodeURIComponent(token)}`;
+}
+
 export function logout(): Promise<void> {
   return apiFetch<void>("/auth/logout", { method: "POST" });
 }

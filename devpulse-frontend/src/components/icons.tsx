@@ -284,6 +284,21 @@ export function XIcon({ size = 16, ...props }: IconProps) {
   );
 }
 
+export const UsersIcon = (p: IconProps) => (
+  <StrokeIcon {...p}>
+    <circle cx="6" cy="5.25" r="2.25" />
+    <path d="M1.75 13.25a4.25 4.25 0 0 1 8.5 0" />
+    <path d="M10.5 3.2a2.25 2.25 0 0 1 0 4.1M12.25 9.6a4.25 4.25 0 0 1 2 3.65" />
+  </StrokeIcon>
+);
+
+export const CopyIcon = (p: IconProps) => (
+  <StrokeIcon {...p}>
+    <rect x="5.25" y="5.25" width="8.5" height="8.5" rx="1.5" />
+    <path d="M10.75 5.25v-1.5a1.5 1.5 0 0 0-1.5-1.5h-5a1.5 1.5 0 0 0-1.5 1.5v5a1.5 1.5 0 0 0 1.5 1.5h1.5" />
+  </StrokeIcon>
+);
+
 export const MailIcon = (p: IconProps) => (
   <StrokeIcon {...p}>
     <rect x="1.75" y="3.25" width="12.5" height="9.5" rx="1.5" />

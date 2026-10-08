@@ -1,9 +1,10 @@
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { AppLayout } from "../components/AppLayout";
 import {
   AlertIcon,
   ArrowRightIcon,
+  CheckIcon,
   GaugeIcon,
   PlusIcon,
   PullRequestIcon,
@@ -12,7 +13,7 @@ import {
 } from "../components/icons";
 import { PullRequestRow, PullRequestRowSkeleton } from "../components/PullRequestRow";
 import { RISK_META, RiskDistribution } from "../components/risk";
-import { ButtonAnchor, ButtonLink, Card, CardHeader, EmptyState, ErrorState, PageHeader, cx } from "../components/ui";
+import { Banner, ButtonAnchor, ButtonLink, Card, CardHeader, EmptyState, ErrorState, PageHeader, cx } from "../components/ui";
 import { githubInstallUrl, type PullRequestListItem, type RiskLevel } from "../lib/api";
 import { greeting, plural } from "../lib/format";
 import { useCurrentUser } from "../lib/use-current-user";
@@ -32,6 +33,9 @@ export function DashboardPage() {
   const { data: user } = useCurrentUser();
   const repos = useRepositories();
   const prs = usePullRequests();
+  // Set by the API after an invitation is accepted at sign-in.
+  const [searchParams] = useSearchParams();
+  const justJoined = searchParams.get("joined") === "1";
 
   if (!user) return null; // ProtectedRoute handles loading and redirects
 
@@ -60,6 +64,8 @@ export function DashboardPage() {
     .slice(0, 6);
 
   const firstName = (user.displayName ?? user.githubLogin).split(" ")[0];
+  const org = user.organizations[0];
+  const isAdmin = org?.role === "ADMIN";
   const loading = prs.isLoading;
 
   return (
@@ -82,13 +88,23 @@ export function DashboardPage() {
               <PullRequestIcon size={14} />
               All pull requests
             </ButtonLink>
-            <ButtonAnchor href={githubInstallUrl()} variant="solid">
-              <PlusIcon size={14} />
-              Connect repo
-            </ButtonAnchor>
+            {isAdmin && (
+              <ButtonAnchor href={githubInstallUrl()} variant="solid">
+                <PlusIcon size={14} />
+                Connect repo
+              </ButtonAnchor>
+            )}
           </>
         }
       />
+
+      {justJoined && org && (
+        <div className="mt-6">
+          <Banner tone="success">
+            <CheckIcon size={15} /> You've joined {org.name}. Its pull requests are below.
+          </Banner>
+        </div>
+      )}
 
       <div className="mt-8 grid animate-fade-in-up grid-cols-2 gap-3 [animation-delay:60ms] lg:grid-cols-4 lg:gap-4">
         <StatCard

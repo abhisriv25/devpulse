@@ -4,6 +4,10 @@ import { redis } from "../redis.js";
 
 export class GithubAppError extends Error {}
 
+/** GitHub answered 403: the App is missing a permission it needs (most often
+ * Organization "Members: read", which an org owner has to accept). */
+export class GithubPermissionError extends GithubAppError {}
+
 // GitHub caps App JWTs at 10 minutes; back the issued-at off by 60s to
 // tolerate clock drift between this process and GitHub's.
 const JWT_EXPIRY_SECONDS = 9 * 60;
@@ -66,6 +70,103 @@ export async function fetchInstallationAccessToken(installationId: string): Prom
   }
 
   return body.token;
+}
+
+export interface GithubInstallationAccount {
+  id: string;
+  login: string;
+  /** "Organization" or "User". */
+  type: string;
+}
+
+/** Which GitHub account an installation belongs to, asked of GitHub with
+ * the App's own JWT — the installation id in a setup redirect is
+ * client-supplied, so its owner has to come from GitHub, not the URL. */
+export async function fetchInstallationAccount(installationId: string): Promise<GithubInstallationAccount> {
+  const res = await fetch(`https://api.github.com/app/installations/${installationId}`, {
+    headers: {
+      Authorization: `Bearer ${buildAppJwt()}`,
+      Accept: "application/vnd.github+json",
+      "User-Agent": "devpulse",
+    },
+  });
+
+  if (!res.ok) {
+    throw new GithubAppError(`Failed to fetch installation (status ${res.status})`);
+  }
+
+  const body = (await res.json()) as { account?: { id: number; login: string; type: string } | null };
+  if (!body.account) {
+    throw new GithubAppError("Installation has no account");
+  }
+  return { id: String(body.account.id), login: body.account.login, type: body.account.type };
+}
+
+/** A yes/no GitHub endpoint (204 = yes, 404 = no). Anything else — most
+ * often 403 because the App lacks the permission — is an error, never a
+ * "no", so callers can't mistake an outage for a definitive answer. */
+async function githubYesNo(installationAccessToken: string, path: string): Promise<boolean> {
+  const res = await fetch(`https://api.github.com${path}`, {
+    headers: {
+      Authorization: `Bearer ${installationAccessToken}`,
+      Accept: "application/vnd.github+json",
+      "User-Agent": "devpulse",
+    },
+    redirect: "manual",
+  });
+
+  if (res.status === 204) return true;
+  if (res.status === 404) return false;
+  if (res.status === 403) throw new GithubPermissionError(`GitHub ${path} answered 403`);
+  throw new GithubAppError(`GitHub ${path} answered ${res.status}`);
+}
+
+/** Needs the App's Organization "Members: read" permission. */
+export function isGithubOrganizationMember(
+  installationAccessToken: string,
+  org: string,
+  username: string,
+): Promise<boolean> {
+  return githubYesNo(installationAccessToken, `/orgs/${encodeURIComponent(org)}/members/${encodeURIComponent(username)}`);
+}
+
+export function isGithubRepositoryCollaborator(
+  installationAccessToken: string,
+  owner: string,
+  repo: string,
+  username: string,
+): Promise<boolean> {
+  return githubYesNo(
+    installationAccessToken,
+    `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/collaborators/${encodeURIComponent(username)}`,
+  );
+}
+
+/** True only for an active owner ("admin") of the GitHub organization.
+ * Needs the App's Organization "Members: read" permission. */
+export async function isGithubOrganizationOwner(
+  installationAccessToken: string,
+  org: string,
+  username: string,
+): Promise<boolean> {
+  const res = await fetch(
+    `https://api.github.com/orgs/${encodeURIComponent(org)}/memberships/${encodeURIComponent(username)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${installationAccessToken}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "devpulse",
+      },
+    },
+  );
+
+  if (res.status === 404) return false;
+  if (res.status === 403) throw new GithubPermissionError("GitHub org membership lookup answered 403");
+  if (!res.ok) {
+    throw new GithubAppError(`GitHub org membership lookup answered ${res.status}`);
+  }
+  const body = (await res.json()) as { role?: string; state?: string };
+  return body.role === "admin" && body.state === "active";
 }
 
 export interface GithubInstallationRepo {

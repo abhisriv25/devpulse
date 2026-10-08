@@ -538,6 +538,36 @@ MEDIUM/HIGH/CRITICAL PR and the "AI context" section generates and persists a
 `RiskAssessment` — reload the page and it's instant, since `getOrCreatePrIntelligence`
 reused the persisted row instead of calling the LLM again.
 
+## Teams: organizations and invitations
+
+- **Creating an organization.** Signing in never creates one. A signed-in user
+  with no organization lands on `/welcome`, names it, and becomes its ADMIN.
+- **Linking GitHub.** Connecting a repository (admins only) also ties the
+  organization to the GitHub account the App was installed on. The installation
+  id in GitHub's redirect is client-supplied, so the account is looked up from
+  GitHub and the installer must own it — be that user, or an owner of that GitHub
+  organization (`devpulse-backend/src/organizations/github-link.service.ts`).
+  One GitHub account per DevPulse organization, and vice versa.
+- **Inviting.** Admins invite by email on `/members`. Each invitation is a
+  random 256-bit link that works once and expires after 24 hours; only its
+  SHA-256 hash is stored. It's emailed through Resend when `RESEND_API_KEY` and
+  `EMAIL_FROM` are set; otherwise the admin copies the link.
+- **Accepting.** The link opens `/invite/:token`; "Connect your GitHub" signs in
+  and the OAuth callback accepts the invitation. The invitee's GitHub account
+  must belong to the linked account: a member of the GitHub organization, or —
+  when it's a personal account — that person or a collaborator on a connected
+  repository. Anyone signing in without an invitation can only create their own
+  organization.
+- **Managing.** `/members` (admins only, enforced by the API) lists members with
+  how they joined, last activity and live GitHub status; admins change roles,
+  remove people, and resend or cancel invitations. The last admin can't be
+  demoted or removed. A MEMBER who has left the GitHub organization loses their
+  membership at their next sign-in (only on GitHub's definite "not a member" —
+  never on an error).
+- **GitHub App permission.** Checking GitHub organization membership needs the
+  App's **Organization → Members: Read** permission, accepted once by an owner
+  of each GitHub organization it's installed on.
+
 ## Deploying
 
 Pushing to `main` deploys automatically:

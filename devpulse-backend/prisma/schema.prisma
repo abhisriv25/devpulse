@@ -13,6 +13,10 @@
 // any earlier would have meant persisting a shape Slice 9 hadn't settled
 // on yet; that's exactly the "layer-by-layer" trap the build plan says to
 // avoid. Resist the urge to add anything else here.
+//
+// Teams: Invitation, the Organization -> GitHub account link, and
+// User.lastActiveAt — organizations are created deliberately and joined by
+// invitation instead of being auto-created on first sign-in.
 
 generator client {
   provider        = "prisma-client-js"
@@ -34,8 +38,13 @@ model User {
   avatarUrl     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  /// Touched (at most every few minutes) when the app loads /me — shown to
+  /// admins on the Members page.
+  lastActiveAt  DateTime?
 
-  memberships   Membership[]
+  memberships         Membership[]
+  invitationsSent     Invitation[] @relation("InvitationsSent")
+  invitationsAccepted Invitation[] @relation("InvitationsAccepted")
 
   @@index([githubLogin])
 }
@@ -49,9 +58,44 @@ model Organization {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  /// The GitHub account (organization or user) this organization is tied
+  /// to, set from the GitHub App installation itself — never typed in.
+  /// Unique so two DevPulse organizations can't claim one GitHub account.
+  /// Invitees must belong to it to join.
+  githubAccountId      String?  @unique
+  githubAccountLogin   String?
+  /// "Organization" or "User", as GitHub reports it.
+  githubAccountType    String?
+  githubInstallationId String?
+
   memberships      Membership[]
   repositories     Repository[]
   knowledgeSources KnowledgeSource[]
+  invitations      Invitation[]
+}
+
+/// An admin's invitation for someone to join an organization. Only a
+/// SHA-256 hash of the link's token is stored, so a database leak doesn't
+/// leak usable links. A link works once (acceptedAt) and expires after a
+/// day; resending revokes the old row and issues a new one.
+model Invitation {
+  id             String         @id @default(cuid())
+  organizationId String
+  email          String
+  tokenHash      String         @unique
+  role           MembershipRole @default(MEMBER)
+  invitedById    String?
+  createdAt      DateTime       @default(now())
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  acceptedById   String?
+  revokedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User?        @relation("InvitationsSent", fields: [invitedById], references: [id], onDelete: SetNull)
+  acceptedBy   User?        @relation("InvitationsAccepted", fields: [acceptedById], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
 }
 
 /// Join table: which users belong to which orgs, and with what role.
