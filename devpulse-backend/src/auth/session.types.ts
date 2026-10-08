@@ -6,5 +6,8 @@ declare module "express-session" {
     oauthState?: string;
     githubInstallState?: string;
     githubInstallOrgId?: string;
+    /** Set when sign-in started from an invite link; consumed by the OAuth
+     * callback, which accepts the invitation once GitHub confirms who this is. */
+    pendingInvitationToken?: string;
   }
 }

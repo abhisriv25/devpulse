@@ -12,6 +12,14 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_callback: "GitHub didn't send back what we expected. Please try connecting again.",
   invalid_state: "That connection request expired or was already used. Please try again.",
   install_failed: "We couldn't finish syncing your repositories. Please try again.",
+  admin_only: "Only your organization's admins can connect repositories. Ask one of them to add the repo.",
+  not_account_owner:
+    "Only an owner of that GitHub account can connect it. Ask a GitHub organization owner to connect it from their DevPulse admin account.",
+  account_mismatch:
+    "This organization is already linked to a different GitHub account. Install DevPulse on that same account to add more repositories.",
+  account_taken: "That GitHub account is already linked to another DevPulse organization.",
+  app_permission_missing:
+    "The DevPulse GitHub App needs the new “Members: read” permission. A GitHub organization owner can accept it under Settings → GitHub Apps → DevPulse, then try again.",
 };
 
 export function RepositoriesPage() {

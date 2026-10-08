@@ -9,6 +9,8 @@ import { RepositoriesPage } from "./pages/RepositoriesPage";
 import { PullRequestsPage } from "./pages/PullRequestsPage";
 import { PullRequestDetailPage } from "./pages/PullRequestDetailPage";
 import { WelcomePage } from "./pages/WelcomePage";
+import { InvitePage } from "./pages/InvitePage";
+import { MembersPage } from "./pages/MembersPage";
 import { ProtectedRoute } from "./lib/ProtectedRoute";
 import { ThemeProvider } from "./lib/theme";
 
@@ -29,6 +31,7 @@ export function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
+        <Route path="/invite/:token" element={<InvitePage />} />
         <Route
           path="/welcome"
           element={
@@ -41,6 +44,7 @@ export function App() {
         <Route path="/pulls" element={protect(<PullRequestsPage />)} />
         <Route path="/pulls/:pullId" element={protect(<PullRequestDetailPage />)} />
         <Route path="/repositories" element={protect(<RepositoriesPage />)} />
+        <Route path="/members" element={protect(<MembersPage />)} />
         <Route path="/repositories/:repoId/pulls" element={<LegacyRepoPullsRedirect />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

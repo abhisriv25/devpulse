@@ -19,3 +19,21 @@ export const authFlowRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+/** Sending invitations emails real people, so it's capped per hour — enough
+ * to invite a whole team, not enough to use DevPulse as a spam relay. */
+export const invitationSendRateLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** Looking up an invite link by its token — tight enough that guessing
+ * tokens is hopeless (they're 256-bit anyway). */
+export const invitationLookupRateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+});

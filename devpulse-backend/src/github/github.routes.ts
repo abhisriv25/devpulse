@@ -5,7 +5,9 @@ import { requireAuth } from "../auth/auth.routes.js";
 import { env } from "../env.js";
 import { authFlowRateLimiter } from "../middleware/rate-limit.js";
 import { prisma } from "../prisma.js";
-import { GithubAppError } from "./github-app-auth.service.js";
+import { GithubLinkError, linkInstallationToOrganization } from "../organizations/github-link.service.js";
+import { findCurrentMembership } from "../organizations/membership.service.js";
+import { GithubAppError, GithubPermissionError } from "./github-app-auth.service.js";
 import { syncInstallationRepositories } from "./repository.service.js";
 
 export const githubRouter = Router();
@@ -39,12 +41,20 @@ githubRouter.get("/repositories", requireAuth, async (req, res) => {
 });
 
 githubRouter.get("/github/install-url", authFlowRateLimiter, requireAuth, async (req, res) => {
-  const organizationId = await resolvePrimaryOrganizationId(req.session.userId as string);
+  const membership = await findCurrentMembership(req.session.userId as string);
 
-  if (!organizationId) {
+  if (!membership) {
     res.status(400).json({ error: { message: "No organization to install into" } });
     return;
   }
+  // Installing links the organization to a GitHub account and decides which
+  // repos everyone sees — an admin decision. The browser navigates here
+  // from a "Connect repo" link, so explain on the page rather than in JSON.
+  if (membership.role !== "ADMIN") {
+    res.redirect(`${env.WEB_BASE_URL}/repositories?error=admin_only`);
+    return;
+  }
+  const organizationId = membership.organizationId;
 
   const state = randomBytes(16).toString("hex");
   req.session.githubInstallState = state;
@@ -73,10 +83,25 @@ githubRouter.get(SETUP_PATH, async (req, res) => {
     return;
   }
 
+  const user = await prisma.user.findUnique({ where: { id: req.session.userId as string } });
+  if (!user) {
+    res.redirect(INSTALL_FAILED_REDIRECT);
+    return;
+  }
+
   try {
+    await linkInstallationToOrganization(organizationId, installationId, user);
     await syncInstallationRepositories(organizationId, installationId);
     res.redirect(`${env.WEB_BASE_URL}/repositories`);
   } catch (err) {
+    if (err instanceof GithubLinkError) {
+      res.redirect(`${env.WEB_BASE_URL}/repositories?error=${err.code}`);
+      return;
+    }
+    if (err instanceof GithubPermissionError) {
+      res.redirect(`${env.WEB_BASE_URL}/repositories?error=app_permission_missing`);
+      return;
+    }
     if (err instanceof GithubAppError) {
       res.redirect(INSTALL_FAILED_REDIRECT);
       return;

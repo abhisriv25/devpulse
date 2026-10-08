@@ -27,6 +27,11 @@ const envSchema = z.object({
   LLM_MODEL_SMALL: z.string().min(1).default("gpt-4o-mini"),
   LLM_MODEL_STRONG: z.string().min(1).default("gpt-4o"),
 
+  // Invitation emails go out through Resend when both are set; without
+  // them, admins get the invite link to copy and share themselves.
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
+
   API_BASE_URL: z.string().url().default("http://localhost:3000"),
   WEB_BASE_URL: z.string().url().default("http://localhost:5173"),
 });

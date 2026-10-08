@@ -4,7 +4,7 @@ import { Link, NavLink, useLocation } from "react-router-dom";
 import { logout } from "../lib/api";
 import { useCurrentUser } from "../lib/use-current-user";
 import { usePullRequests } from "../lib/use-pull-requests";
-import { CloseIcon, HomeIcon, LogOutIcon, MenuIcon, LogoMark, PullRequestIcon, RepoIcon } from "./icons";
+import { CloseIcon, HomeIcon, LogOutIcon, MenuIcon, LogoMark, PullRequestIcon, RepoIcon, UsersIcon } from "./icons";
 import { GridLines } from "./PublicLayout";
 import { ThemeToggle } from "./ThemeToggle";
 import { Avatar, cx } from "./ui";
@@ -14,6 +14,9 @@ const NAV = [
   { to: "/pulls", label: "Pull requests", icon: PullRequestIcon, end: false },
   { to: "/repositories", label: "Repositories", icon: RepoIcon, end: false },
 ];
+
+/** Only shown to admins; the API enforces the same rule. */
+const ADMIN_NAV = [{ to: "/members", label: "Members", icon: UsersIcon, end: false }];
 
 export function AppLayout({ children, width = "wide" }: { children: ReactNode; width?: "wide" | "narrow" }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -126,7 +129,7 @@ function SidebarContent() {
 
       <nav className="mt-2 flex-1 space-y-0.5 px-3" aria-label="Main">
         <p className="px-2.5 pb-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400 dark:text-slate-600">Workspace</p>
-        {NAV.map(({ to, label, icon: Icon, end }) => (
+        {[...NAV, ...(org?.role === "ADMIN" ? ADMIN_NAV : [])].map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
