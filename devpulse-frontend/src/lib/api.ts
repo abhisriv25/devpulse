@@ -48,6 +48,12 @@ export function fetchCurrentUser(): Promise<CurrentUser> {
   return apiFetch<CurrentUser>("/me");
 }
 
+/** Creates an organization with the caller as its ADMIN. Only for users who
+ * don't belong to one yet — the API answers 409 otherwise. */
+export function createOrganization(name: string): Promise<Organization> {
+  return apiFetch<Organization>("/organizations", { method: "POST", body: JSON.stringify({ name }) });
+}
+
 export function logout(): Promise<void> {
   return apiFetch<void>("/auth/logout", { method: "POST" });
 }

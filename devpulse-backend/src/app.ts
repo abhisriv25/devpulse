@@ -11,6 +11,7 @@ import { env, isProduction } from "./env.js";
 import { githubRouter } from "./github/github.routes.js";
 import { healthRouter } from "./health/health.routes.js";
 import { logger } from "./logger.js";
+import { organizationRouter } from "./organizations/organization.routes.js";
 import { pullRequestRouter } from "./pull-requests/pull-request.routes.js";
 import { redis } from "./redis.js";
 import { webhookRouter } from "./webhooks/webhook.routes.js";
@@ -63,6 +64,7 @@ app.use(
 app.use(healthRouter);
 app.use(authRouter);
 app.use(githubRouter);
+app.use(organizationRouter);
 app.use(pullRequestRouter);
 app.use(webhookRouter);
 

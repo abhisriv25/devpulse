@@ -4,12 +4,12 @@ import { prisma } from "../prisma.js";
 import type { GithubOAuthProfile } from "./github-oauth.service.js";
 
 /**
- * Upserts the User row for this GitHub identity, and — on a user's very
- * first login only — bootstraps a personal Organization + ADMIN Membership,
- * since every later feature (repos, PRs, knowledge sources) is org-scoped.
+ * Upserts the User row for this GitHub identity. Signing in never creates an
+ * organization: a user with no membership is sent to create one (see
+ * createOrganizationForUser), and later slices let them join by invitation.
  */
 export async function findOrCreateUserForGithubProfile(profile: GithubOAuthProfile) {
-  const user = await prisma.user.upsert({
+  return prisma.user.upsert({
     where: { githubId: profile.githubId },
     update: {
       githubLogin: profile.githubLogin,
@@ -22,27 +22,44 @@ export async function findOrCreateUserForGithubProfile(profile: GithubOAuthProfi
       displayName: profile.displayName,
       avatarUrl: profile.avatarUrl,
     },
-    include: { memberships: true },
   });
-
-  if (user.memberships.length > 0) {
-    return user;
-  }
-
-  const membership = await createPersonalOrganization(user.id, profile.githubLogin);
-  return { ...user, memberships: [membership] };
 }
 
-async function createPersonalOrganization(userId: string, githubLogin: string) {
-  const baseSlug = githubLogin.toLowerCase();
+export class AlreadyInOrganizationError extends Error {
+  constructor() {
+    super("You already belong to an organization");
+  }
+}
 
-  for (const slug of [baseSlug, `${baseSlug}-${randomBytes(3).toString("hex")}`]) {
+/** "Acme Inc." -> "acme-inc"; falls back to "org" when nothing usable is left. */
+export function slugifyOrganizationName(name: string): string {
+  const slug = name
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40)
+    .replace(/-+$/, "");
+  return slug || "org";
+}
+
+/**
+ * Creates an organization with the caller as its ADMIN, in one write so an
+ * organization never exists without an admin. One organization per user for
+ * now — resolvePrimaryOrganizationId assumes it until org switching exists.
+ */
+export async function createOrganizationForUser(userId: string, name: string) {
+  const existing = await prisma.membership.findFirst({ where: { userId } });
+  if (existing) throw new AlreadyInOrganizationError();
+
+  const baseSlug = slugifyOrganizationName(name);
+  const candidates = [baseSlug, `${baseSlug}-${randomBytes(3).toString("hex")}`, `${baseSlug}-${randomBytes(3).toString("hex")}`];
+
+  for (const slug of candidates) {
     try {
-      const organization = await prisma.organization.create({
-        data: { name: `${githubLogin}'s Organization`, slug },
-      });
-      return await prisma.membership.create({
-        data: { userId, organizationId: organization.id, role: "ADMIN" },
+      return await prisma.organization.create({
+        data: { name, slug, memberships: { create: { userId, role: "ADMIN" } } },
       });
     } catch (err) {
       const isSlugCollision =
@@ -53,14 +70,14 @@ async function createPersonalOrganization(userId: string, githubLogin: string) {
     }
   }
 
-  throw new Error(`Could not allocate a unique organization slug for ${githubLogin}`);
+  throw new Error(`Could not allocate a unique organization slug for "${name}"`);
 }
 
 /**
- * "The" organization a user belongs to. Every user is bootstrapped with
- * exactly one org on first login (see above), so "their first membership"
- * is correct today — this is a placeholder for real org selection once
- * multi-org membership becomes a real scenario.
+ * "The" organization a user belongs to, or null before they've created or
+ * joined one. A user has at most one membership today (see
+ * createOrganizationForUser), so "their first membership" is correct — this
+ * is a placeholder for real org selection once multi-org membership exists.
  */
 export async function resolvePrimaryOrganizationId(userId: string): Promise<string | null> {
   const membership = await prisma.membership.findFirst({
