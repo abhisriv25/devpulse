@@ -4,7 +4,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://52-206-148-6.sslip.io/:path*" },
+    { "source": "/api/:path*", "destination": "https://api-production-1a41a.up.railway.app/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
